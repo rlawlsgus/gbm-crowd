@@ -18,6 +18,11 @@ public class PureReactiveModel : SimulatorBase
 	private void Start()
     {
         AgentCamera.backgroundColor = new Color(0.0f, 0.0f, -1.0f, -1.0f);
+
+		if (m_Agents.Count == 0)
+		{
+			m_Agents.AddRange(FindObjectsOfType<AgentPRM>());
+		}
 	}
 
 	protected override void SetupVisionShader(AgentBase agent)

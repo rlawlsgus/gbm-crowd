@@ -24,6 +24,14 @@ public class GradientBasedModel : SimulatorBase
 		m_Agents.Clear();
     }
 
+	private void Start()
+	{
+		if (m_Agents.Count == 0)
+		{
+			m_Agents.AddRange(FindObjectsOfType<AgentGBM>());
+		}
+	}
+
     protected override void SetupVisionShader(AgentBase agent)
 	{
 		if (agent is AgentGBM agentGBM)
