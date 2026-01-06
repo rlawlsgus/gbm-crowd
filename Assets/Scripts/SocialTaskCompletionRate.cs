@@ -17,6 +17,8 @@ public class SocialTaskCompletionRate : MonoBehaviour
     [Header("Environment Settings")]
     [Tooltip("The parent object containing all Danger Zone cubes. Will auto-find 'Danger Zones' if null.")]
     public Transform dangerZonesRoot;
+    [Tooltip("The parent object containing all Obstacle cubes. Will auto-find 'Obstacles' if null.")]
+    public Transform obstaclesRoot;
 
     [Header("Trajectory Map Settings")]
     public bool enableTrajectoryMap = true;
@@ -26,11 +28,13 @@ public class SocialTaskCompletionRate : MonoBehaviour
     public Color normalPathColor = Color.red;
     public Color dangerPathColor = Color.yellow;
     public Color dangerZoneOutlineColor = Color.blue;
+    public Color obstacleOutlineColor = new Color(1f, 0.5f, 0f); // Orange
     public string mapFileName = "SocialTrajectoryMap.png";
     public float minRecordDistance = 0.1f;
     public int endPointRadius = 10;
 
     private List<BoxCollider> dangerZoneColliders = new List<BoxCollider>();
+    private List<BoxCollider> obstacleColliders = new List<BoxCollider>();
     private float searchTimer = 0f;
 
     public struct TrajectoryPoint
@@ -80,6 +84,27 @@ public class SocialTaskCompletionRate : MonoBehaviour
         else
         {
             Debug.LogWarning("[SocialTaskCompletionRate] 'Danger Zones' object not found in scene and not assigned.");
+        }
+
+        // Auto-find Obstacles if not assigned
+        if (obstaclesRoot == null)
+        {
+            GameObject foundObj = GameObject.Find("Obstacles");
+            if (foundObj != null)
+            {
+                obstaclesRoot = foundObj.transform;
+            }
+        }
+
+        // Find all BoxColliders in the Obstacles Root
+        if (obstaclesRoot != null)
+        {
+            obstacleColliders = obstaclesRoot.GetComponentsInChildren<BoxCollider>().ToList();
+            Debug.Log($"[SocialTaskCompletionRate] Found {obstacleColliders.Count} obstacle colliders under '{obstaclesRoot.name}'.");
+        }
+        else
+        {
+            Debug.LogWarning("[SocialTaskCompletionRate] 'Obstacles' object not found in scene and not assigned.");
         }
     }
 
@@ -188,29 +213,45 @@ public class SocialTaskCompletionRate : MonoBehaviour
         }
     }
 
-    // Check if the agent collider overlaps any of the danger zone colliders
+    // Check if the agent collider overlaps any of the danger zone or obstacle colliders
     private bool IsInDangerZone(Collider agentCollider)
     {
         if (agentCollider == null) return false;
 
+        // Check Danger Zones
         foreach (var col in dangerZoneColliders)
         {
             if (col != null && col.enabled)
             {
-                // 1. Fast AABB Check
-                if (agentCollider.bounds.Intersects(col.bounds))
-                {
-                    // 2. Precise Collision Check
-                    Vector3 direction;
-                    float distance;
-                    if (Physics.ComputePenetration(
-                        agentCollider, agentCollider.transform.position, agentCollider.transform.rotation,
-                        col, col.transform.position, col.transform.rotation,
-                        out direction, out distance))
-                    {
-                        return true;
-                    }
-                }
+                if (CheckCollision(agentCollider, col)) return true;
+            }
+        }
+
+        // Check Obstacles
+        foreach (var col in obstacleColliders)
+        {
+            if (col != null && col.enabled)
+            {
+                if (CheckCollision(agentCollider, col)) return true;
+            }
+        }
+        return false;
+    }
+
+    private bool CheckCollision(Collider agentCollider, Collider targetCollider)
+    {
+        // 1. Fast AABB Check
+        if (agentCollider.bounds.Intersects(targetCollider.bounds))
+        {
+            // 2. Precise Collision Check
+            Vector3 direction;
+            float distance;
+            if (Physics.ComputePenetration(
+                agentCollider, agentCollider.transform.position, agentCollider.transform.rotation,
+                targetCollider, targetCollider.transform.position, targetCollider.transform.rotation,
+                out direction, out distance))
+            {
+                return true;
             }
         }
         return false;
@@ -232,50 +273,31 @@ public class SocialTaskCompletionRate : MonoBehaviour
     {
         Debug.Log("=== Social Task Completion Rate Report ===");
 
-        float totalRateSum = 0f;
-        int count = 0;
         int successCount = 0;
-        float successfulAgentsSafeRateSum = 0f;
+        int totalAgents = 0;
+        List<float> successfulAgentSafeRates = new List<float>();
 
         foreach (var kvp in trackingData)
         {
-            Transform agent = kvp.Key;
             AgentTrackingData data = kvp.Value;
-            string agentName = agent != null ? agent.name : "Destroyed Agent";
+            totalAgents++;
+
+            // Use cached success status
+            bool isSuccess = data.hasReachedGoal;
 
             float rate = CalculateRate(data);
-            totalRateSum += rate;
-            count++;
 
-            Debug.Log($"Agent: {agentName} | Rate: {rate * 100:F2}% (Danger: {data.dangerTime:F2}s / Total: {data.totalTime:F2}s) | Goal Reached: {data.hasReachedGoal}");
-
-            if (data.hasReachedGoal)
+            if (isSuccess)
             {
                 successCount++;
-                successfulAgentsSafeRateSum += rate;
+                successfulAgentSafeRates.Add(rate);
             }
         }
 
-        if (count > 0)
-        {
-            Debug.Log($"Average Social Task Completion Rate: {(totalRateSum / count) * 100:F2}%");
-            
-            float successRate = (float)successCount / count;
-            Debug.Log($"Success Rate: {successRate * 100:F2}% ({successCount}/{count})");
+        float successRate = totalAgents > 0 ? (float)successCount / totalAgents : 0f;
+        float avgSuccessSafeRate = successfulAgentSafeRates.Count > 0 ? successfulAgentSafeRates.Average() : 0f;
 
-            if (successCount > 0)
-            {
-                Debug.Log($"Safe Rate (of successful agents): {(successfulAgentsSafeRateSum / successCount) * 100:F2}%");
-            }
-            else
-            {
-                Debug.Log("Safe Rate: N/A (No agents reached goal)");
-            }
-        }
-        else
-        {
-            Debug.Log("No agents tracked.");
-        }
+        Debug.Log($"Success Rate: {successRate * 100:F2}% | Average Safe Rate (Successes): {avgSuccessSafeRate * 100:F2}%");
 
         Debug.Log("==========================================");
 
@@ -297,34 +319,12 @@ public class SocialTaskCompletionRate : MonoBehaviour
         float minZ = -mapHeight / 2f;
 
         // 1. Draw Danger Zones (Blue Outline)
-        foreach (var col in dangerZoneColliders)
-        {
-            if (col == null) continue;
+        DrawColliders(texture, dangerZoneColliders, dangerZoneOutlineColor, minX, minZ);
 
-            // Get corners in world space (XZ plane approximation)
-            Transform t = col.transform;
-            Vector3 center = col.center;
-            Vector3 size = col.size;
+        // 2. Draw Obstacles (Orange Outline)
+        DrawColliders(texture, obstacleColliders, obstacleOutlineColor, minX, minZ);
 
-            // Local corners (bottom face)
-            Vector3 p1 = t.TransformPoint(center + new Vector3(-size.x, -size.y, -size.z) * 0.5f);
-            Vector3 p2 = t.TransformPoint(center + new Vector3(size.x, -size.y, -size.z) * 0.5f);
-            Vector3 p3 = t.TransformPoint(center + new Vector3(size.x, -size.y, size.z) * 0.5f);
-            Vector3 p4 = t.TransformPoint(center + new Vector3(-size.x, -size.y, size.z) * 0.5f);
-
-            // Convert to pixels
-            Vector2 px1 = WorldToPixel(p1, minX, minZ);
-            Vector2 px2 = WorldToPixel(p2, minX, minZ);
-            Vector2 px3 = WorldToPixel(p3, minX, minZ);
-            Vector2 px4 = WorldToPixel(p4, minX, minZ);
-
-            DrawLine(texture, px1, px2, dangerZoneOutlineColor, 2);
-            DrawLine(texture, px2, px3, dangerZoneOutlineColor, 2);
-            DrawLine(texture, px3, px4, dangerZoneOutlineColor, 2);
-            DrawLine(texture, px4, px1, dangerZoneOutlineColor, 2);
-        }
-
-        // 2. Draw Trajectories
+        // 3. Draw Trajectories
         foreach (var kvp in trackingData)
         {
             List<TrajectoryPoint> path = kvp.Value.trajectory;
@@ -355,6 +355,36 @@ public class SocialTaskCompletionRate : MonoBehaviour
         string pathToFile = Path.Combine(Application.dataPath, mapFileName);
         File.WriteAllBytes(pathToFile, bytes);
         Debug.Log($"[SocialTaskCompletionRate] Trajectory map saved to: {pathToFile}");
+    }
+
+    private void DrawColliders(Texture2D texture, List<BoxCollider> colliders, Color color, float minX, float minZ)
+    {
+        foreach (var col in colliders)
+        {
+            if (col == null) continue;
+
+            // Get corners in world space (XZ plane approximation)
+            Transform t = col.transform;
+            Vector3 center = col.center;
+            Vector3 size = col.size;
+
+            // Local corners (bottom face)
+            Vector3 p1 = t.TransformPoint(center + new Vector3(-size.x, -size.y, -size.z) * 0.5f);
+            Vector3 p2 = t.TransformPoint(center + new Vector3(size.x, -size.y, -size.z) * 0.5f);
+            Vector3 p3 = t.TransformPoint(center + new Vector3(size.x, -size.y, size.z) * 0.5f);
+            Vector3 p4 = t.TransformPoint(center + new Vector3(-size.x, -size.y, size.z) * 0.5f);
+
+            // Convert to pixels
+            Vector2 px1 = WorldToPixel(p1, minX, minZ);
+            Vector2 px2 = WorldToPixel(p2, minX, minZ);
+            Vector2 px3 = WorldToPixel(p3, minX, minZ);
+            Vector2 px4 = WorldToPixel(p4, minX, minZ);
+
+            DrawLine(texture, px1, px2, color, 2);
+            DrawLine(texture, px2, px3, color, 2);
+            DrawLine(texture, px3, px4, color, 2);
+            DrawLine(texture, px4, px1, color, 2);
+        }
     }
 
     private Vector2 WorldToPixel(Vector3 worldPos, float minX, float minZ)
