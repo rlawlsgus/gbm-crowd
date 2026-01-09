@@ -11,9 +11,20 @@ using UnityEditor;
 public class ZaraGroupRotationSimulator : MonoBehaviour
 {
     [Header("Input (TextAsset)")]
-    public TextAsset trajectoriesTxt;   // output_zara01.txt
+    public TextAsset trajectoriesTxt;   // Zara: id,x,y,frame,angle  OR  ETH: obsmat.txt
     public TextAsset groupsTxt;         // groups.txt
     public TextAsset homographyTxt;     // H.txt (optional)
+
+    public enum TrajectoryInputFormat { Auto, ZaraCsv5, EthObsmat8 }
+
+    [Header("Input Format")]
+    public TrajectoryInputFormat inputFormat = TrajectoryInputFormat.Auto;
+
+    [Tooltip("ETH obsmat.txt는 보통 pos/vel이 이미 meters(world) 좌표라서 homography를 다시 적용하면 안 됩니다.")]
+    public bool ethPositionsAreWorldMeters = true;
+
+    [Tooltip("ETH(obsmat)에서 v_x, v_y로 angle(heading)을 계산해 angles에 저장합니다.")]
+    public bool ethComputeAngleFromVelocity = true;
 
     [Header("Playback")]
     [Min(1f)] public float fps = 25f;
@@ -22,7 +33,7 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
     public bool playOnStart = true;
 
     [Header("World Mapping")]
-    public bool useHomography = true;     // H.txt 적용
+    public bool useHomography = true;     // H.txt 적용 (Zara pixel->world 등)
     public bool flipZ = false;            // 필요하면 true로 (좌표계 뒤집기용)
     public bool flipX = false;            // 필요하면 true로 (좌표계 뒤집기용)
     public float worldScale = 1f;
@@ -83,8 +94,10 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
     struct Sample
     {
         public int frame;
-        public Vector2 xy;     // raw x,y from file (or already mapped if you want)
-        public float angleDeg; // 5th column
+        public Vector2 xy;         // raw ground (x,y) from file (Zara: x,y / ETH: pos_x,pos_y)
+        public float angleDeg;     // Zara: 5th column / ETH: derived or 0
+        public Vector2 velXY;      // ETH: (v_x, v_y) on ground
+        public bool hasVel;
     }
 
     sealed class Trajectory
@@ -94,13 +107,19 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
         public Vector2[] xy;
         public float[] angles;
 
+        public Vector2[] velXY;    // optional
+        public bool[] hasVel;
+
         public int MinFrame => frames[0];
         public int MaxFrame => frames[frames.Length - 1];
 
-        public bool TryEvaluate(float frameF, out Vector2 pos, out float angDeg)
+        public bool TryEvaluate(float frameF, out Vector2 pos, out float angDeg, out Vector2 velOut, out bool hasVelOut)
         {
             pos = default;
             angDeg = 0f;
+            velOut = default;
+            hasVelOut = false;
+
             if (frames == null || frames.Length == 0) return false;
             if (frameF < frames[0] || frameF > frames[frames.Length - 1]) return false;
 
@@ -110,6 +129,12 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
             {
                 pos = xy[idx];
                 angDeg = angles[idx];
+
+                if (velXY != null && hasVel != null && idx < velXY.Length && idx < hasVel.Length)
+                {
+                    velOut = velXY[idx];
+                    hasVelOut = hasVel[idx];
+                }
                 return true;
             }
 
@@ -121,6 +146,12 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
             {
                 pos = xy[lo];
                 angDeg = angles[lo];
+
+                if (velXY != null && hasVel != null && lo < velXY.Length && lo < hasVel.Length)
+                {
+                    velOut = velXY[lo];
+                    hasVelOut = hasVel[lo];
+                }
                 return true;
             }
 
@@ -130,6 +161,13 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
 
             pos = Vector2.LerpUnclamped(xy[lo], xy[hi], t);
             angDeg = Mathf.LerpAngle(angles[lo], angles[hi], t);
+
+            if (velXY != null && hasVel != null && lo < velXY.Length && hi < velXY.Length)
+            {
+                velOut = Vector2.LerpUnclamped(velXY[lo], velXY[hi], t);
+                hasVelOut = (lo < hasVel.Length && hi < hasVel.Length) ? (hasVel[lo] || hasVel[hi]) : true;
+            }
+
             return true;
         }
     }
@@ -149,6 +187,8 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
     bool isPlaying = false;
 
     Vector3 dataCentroidWorld = Vector3.zero;
+
+    TrajectoryInputFormat formatInUse = TrajectoryInputFormat.ZaraCsv5;
 
     // ---------- Unity ----------
     void Awake()
@@ -260,6 +300,13 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
             var t = kv.Value;
             if (t.frames == null || t.frames.Length < 2) continue;
 
+            // ✅ NEW: Play 모드에서만 "활성 agent"만 trajectory 표시
+            if (drawTrajectoriesOnlyForActiveAgents && Application.isPlaying)
+            {
+                if (!goById.TryGetValue(id, out var go) || go == null) continue;
+                if (!go.activeInHierarchy) continue;
+            }
+
             if (trajectoryUseGroupColors)
             {
                 int gi = FindGroupIndexOfAgent(id);
@@ -275,12 +322,7 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
 
             for (int i = 0; i < t.frames.Length; i += stride)
             {
-                Vector2 world2 = useHomography ? ApplyHomography(H, t.xy[i]) : t.xy[i];
-                Vector3 p = ToUnityXZ(world2) * worldScale + worldOffset;
-
-                if (rotateInWorld)
-                    p = RotateAroundY(p, pivot, rotateDeg);
-
+                Vector3 p = MapRawToWorld(t.xy[i], pivot);
                 p.y = trajY;
 
                 if (hasPrev)
@@ -350,15 +392,54 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
         }
 
         ParseTrajectories(trajectoriesTxt.text);
+
         if (groupsTxt != null) ParseGroups(groupsTxt.text);
         BuildGroupEdges();
 
         ComputeDataCentroidWorld();
     }
 
+    TrajectoryInputFormat DetectFormat(string text)
+    {
+        if (inputFormat != TrajectoryInputFormat.Auto) return inputFormat;
+
+        using (var sr = new StringReader(text))
+        {
+            string line;
+            while ((line = sr.ReadLine()) != null)
+            {
+                line = line.Trim();
+                if (line.Length == 0) continue;
+
+                // Zara original: comma separated
+                if (line.Contains(",")) return TrajectoryInputFormat.ZaraCsv5;
+
+                // ETH obsmat: whitespace separated, 8+ columns
+                var toks = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
+                if (toks.Length >= 8) return TrajectoryInputFormat.EthObsmat8;
+                if (toks.Length >= 5) return TrajectoryInputFormat.ZaraCsv5; // fallback
+            }
+        }
+        return TrajectoryInputFormat.ZaraCsv5;
+    }
+
+    static int ParseIntFromFloatToken(string tok, CultureInfo inv)
+    {
+        // tokens like "8.2050000e+03"
+        if (float.TryParse(tok, NumberStyles.Float, inv, out var f))
+            return Mathf.RoundToInt(f);
+
+        if (int.TryParse(tok, NumberStyles.Integer, inv, out var i))
+            return i;
+
+        return 0;
+    }
+
     void ParseTrajectories(string text)
     {
         var inv = CultureInfo.InvariantCulture;
+
+        formatInUse = DetectFormat(text);
 
         var tmp = new Dictionary<int, List<Sample>>(256);
 
@@ -372,55 +453,130 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
                 lineNo++;
                 if (string.IsNullOrWhiteSpace(line)) continue;
 
-                var parts = line.Split(',');
-                if (parts.Length < 5)
+                if (formatInUse == TrajectoryInputFormat.ZaraCsv5)
                 {
-                    Debug.LogWarning($"[ZaraGroupRotationSimulator] Skip bad line {lineNo}: {line}");
-                    continue;
-                }
+                    var parts = line.Split(',');
+                    if (parts.Length < 5) continue;
 
-                try
-                {
-                    int id = int.Parse(parts[0].Trim(), inv);
-                    float x = float.Parse(parts[1].Trim(), inv);
-                    float y = float.Parse(parts[2].Trim(), inv);
-                    int frame = int.Parse(parts[3].Trim(), inv);
-                    float ang = float.Parse(parts[4].Trim(), inv);
-
-                    if (!tmp.TryGetValue(id, out var list))
+                    try
                     {
-                        list = new List<Sample>(256);
-                        tmp[id] = list;
+                        int id = int.Parse(parts[0].Trim(), inv);
+                        float x = float.Parse(parts[1].Trim(), inv);
+                        float y = float.Parse(parts[2].Trim(), inv);
+                        int frame = int.Parse(parts[3].Trim(), inv);
+                        float ang = float.Parse(parts[4].Trim(), inv);
+
+                        if (!tmp.TryGetValue(id, out var list))
+                        {
+                            list = new List<Sample>(256);
+                            tmp[id] = list;
+                        }
+
+                        list.Add(new Sample
+                        {
+                            frame = frame,
+                            xy = new Vector2(x, y),
+                            angleDeg = ang,
+                            velXY = Vector2.zero,
+                            hasVel = false
+                        });
+
+                        globalMinFrame = Mathf.Min(globalMinFrame, frame);
+                        globalMaxFrame = Mathf.Max(globalMaxFrame, frame);
                     }
-
-                    list.Add(new Sample { frame = frame, xy = new Vector2(x, y), angleDeg = ang });
-
-                    globalMinFrame = Mathf.Min(globalMinFrame, frame);
-                    globalMaxFrame = Mathf.Max(globalMaxFrame, frame);
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"[ZaraGroupRotationSimulator] Parse error line {lineNo}: {line}\n{ex.Message}");
+                    }
                 }
-                catch (Exception ex)
+                else // ETH obsmat
                 {
-                    Debug.LogWarning($"[ZaraGroupRotationSimulator] Parse error line {lineNo}: {line}\n{ex.Message}");
+                    // [frame_number pedestrian_ID pos_x pos_z pos_y v_x v_z v_y]
+                    var toks = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
+                    if (toks.Length < 8) continue; // skip stray lines
+
+                    try
+                    {
+                        int frame = ParseIntFromFloatToken(toks[0], inv);
+                        int id = ParseIntFromFloatToken(toks[1], inv);
+
+                        float posX = float.Parse(toks[2], NumberStyles.Float, inv);
+                        float posY = float.Parse(toks[4], NumberStyles.Float, inv);
+
+                        float vx = float.Parse(toks[5], NumberStyles.Float, inv);
+                        float vy = float.Parse(toks[7], NumberStyles.Float, inv);
+
+                        var vel = new Vector2(vx, vy);
+                        float ang = 0f;
+                        if (ethComputeAngleFromVelocity && vel.sqrMagnitude > 1e-10f)
+                            ang = Mathf.Atan2(vel.x, vel.y) * Mathf.Rad2Deg;
+
+                        if (!tmp.TryGetValue(id, out var list))
+                        {
+                            list = new List<Sample>(256);
+                            tmp[id] = list;
+                        }
+
+                        list.Add(new Sample
+                        {
+                            frame = frame,
+                            xy = new Vector2(posX, posY),
+                            angleDeg = ang,
+                            velXY = vel,
+                            hasVel = true
+                        });
+
+                        globalMinFrame = Mathf.Min(globalMinFrame, frame);
+                        globalMaxFrame = Mathf.Max(globalMaxFrame, frame);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"[ZaraGroupRotationSimulator] Parse error line {lineNo}: {line}\n{ex.Message}");
+                    }
                 }
             }
         }
 
+        // build trajectories
         foreach (var kv in tmp)
         {
             int id = kv.Key;
             var list = kv.Value;
             list.Sort((a, b) => a.frame.CompareTo(b.frame));
 
-            int n = list.Count;
+            // compact duplicate frames
+            var compact = new List<Sample>(list.Count);
+            for (int i = 0; i < list.Count; i++)
+            {
+                var s = list[i];
+                if (compact.Count == 0 || compact[compact.Count - 1].frame != s.frame)
+                {
+                    compact.Add(s);
+                }
+                else
+                {
+                    var prev = compact[compact.Count - 1];
+                    float pv = prev.velXY.sqrMagnitude;
+                    float sv = s.velXY.sqrMagnitude;
+                    if (sv > pv) compact[compact.Count - 1] = s;
+                    else compact[compact.Count - 1] = prev;
+                }
+            }
+
+            int n = compact.Count;
             var frames = new int[n];
             var xy = new Vector2[n];
             var ang = new float[n];
+            var vel = new Vector2[n];
+            var hasVel = new bool[n];
 
             for (int i = 0; i < n; i++)
             {
-                frames[i] = list[i].frame;
-                xy[i] = list[i].xy;
-                ang[i] = list[i].angleDeg;
+                frames[i] = compact[i].frame;
+                xy[i] = compact[i].xy;
+                ang[i] = compact[i].angleDeg;
+                vel[i] = compact[i].velXY;
+                hasVel[i] = compact[i].hasVel;
             }
 
             trajById[id] = new Trajectory
@@ -428,7 +584,9 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
                 id = id,
                 frames = frames,
                 xy = xy,
-                angles = ang
+                angles = ang,
+                velXY = vel,
+                hasVel = hasVel
             };
         }
 
@@ -579,11 +737,39 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
         }
     }
 
+    bool IsValidVector(Vector3 v)
+    {
+        return !float.IsNaN(v.x) && !float.IsInfinity(v.x) &&
+               !float.IsNaN(v.y) && !float.IsInfinity(v.y) &&
+               !float.IsNaN(v.z) && !float.IsInfinity(v.z);
+    }
+
+    bool IsETHWorld()
+    {
+        return formatInUse == TrajectoryInputFormat.EthObsmat8 && ethPositionsAreWorldMeters;
+    }
+
+    bool ShouldApplyHomography()
+    {
+        if (IsETHWorld()) return false;
+        return useHomography;
+    }
+
+    Vector2 MapRawTo2D(Vector2 rawXY)
+    {
+        return ShouldApplyHomography() ? ApplyHomography(H, rawXY) : rawXY;
+    }
+
+    Vector3 Map2DToUnityWorld(Vector2 mappedXY)
+    {
+        return ToUnityXZ(mappedXY) * worldScale + worldOffset;
+    }
+
     // === helper: rawXY -> world (mapping + rotateInWorld까지 포함) ===
     Vector3 MapRawToWorld(Vector2 rawXY, Vector3 pivot)
     {
-        Vector2 world2 = useHomography ? ApplyHomography(H, rawXY) : rawXY;
-        var pos = ToUnityXZ(world2) * worldScale + worldOffset;
+        Vector2 mapped2 = MapRawTo2D(rawXY);
+        var pos = Map2DToUnityWorld(mapped2);
 
         if (rotateInWorld)
             pos = RotateAroundY(pos, pivot, rotateDeg);
@@ -591,37 +777,68 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
         return pos;
     }
 
+    Vector3 MapVelToWorldDir(Vector2 velXY)
+    {
+        Vector3 d = ToUnityXZ(velXY) * worldScale;
+        d.y = 0f;
+
+        if (rotateInWorld)
+        {
+            var q = Quaternion.Euler(0f, rotateDeg, 0f);
+            d = q * d;
+            d.y = 0f;
+        }
+
+        return d;
+    }
+
     // === helper: hasPrev가 없을 때 초기 yaw를 잡기 위한 "미래/과거" 샘플 기반 dir ===
     bool TryGetInitialDirFromTrajectory(Trajectory traj, float frameF, Vector3 pivot, out Vector3 dirWorld)
     {
         dirWorld = Vector3.zero;
 
-        float step = Mathf.Sign(playbackSpeed);
-        if (Mathf.Approximately(step, 0f)) step = 1f;
-
-        // 1) 다음 프레임(진행 방향) 시도
-        if (traj.TryEvaluate(frameF + step, out var rawNext, out _))
+        if (traj.TryEvaluate(frameF, out _, out _, out var velNow, out var hasVelNow) && hasVelNow)
         {
-            if (traj.TryEvaluate(frameF, out var rawNow, out _))
+            var d = MapVelToWorldDir(velNow);
+            if (d.sqrMagnitude > dirEpsilon * dirEpsilon)
             {
-                Vector3 p0 = MapRawToWorld(rawNow, pivot);
-                Vector3 p1 = MapRawToWorld(rawNext, pivot);
-                dirWorld = p1 - p0;
-                dirWorld.y = 0f;
+                dirWorld = d;
                 return true;
             }
         }
 
-        // 2) 안되면 이전 프레임으로 역방향 dir
-        if (traj.TryEvaluate(frameF - step, out var rawPrev, out _))
+        float step = Mathf.Sign(playbackSpeed);
+        if (Mathf.Approximately(step, 0f)) step = 1f;
+
+        // 1) 다음 프레임(진행 방향) 시도
+        if (traj.TryEvaluate(frameF + step, out var rawNext, out _, out _, out _))
         {
-            if (traj.TryEvaluate(frameF, out var rawNow, out _))
+            if (traj.TryEvaluate(frameF, out var rawNow, out _, out _, out _))
+            {
+                Vector3 p0 = MapRawToWorld(rawNow, pivot);
+                Vector3 p1 = MapRawToWorld(rawNext, pivot);
+                if (IsValidVector(p0) && IsValidVector(p1))
+                {
+                    dirWorld = p1 - p0;
+                    dirWorld.y = 0f;
+                    return true;
+                }
+            }
+        }
+
+        // 2) 안되면 이전 프레임으로 역방향 dir
+        if (traj.TryEvaluate(frameF - step, out var rawPrev, out _, out _, out _))
+        {
+            if (traj.TryEvaluate(frameF, out var rawNow, out _, out _, out _))
             {
                 Vector3 p0 = MapRawToWorld(rawPrev, pivot);
                 Vector3 p1 = MapRawToWorld(rawNow, pivot);
-                dirWorld = p1 - p0;
-                dirWorld.y = 0f;
-                return true;
+                if (IsValidVector(p0) && IsValidVector(p1))
+                {
+                    dirWorld = p1 - p0;
+                    dirWorld.y = 0f;
+                    return true;
+                }
             }
         }
 
@@ -646,7 +863,7 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
             bool wasActive = go.activeSelf;
 
             // 데이터 없으면 비활성 + 캐시 정리
-            if (!traj.TryEvaluate(currentFrameF, out var rawXY, out var angDeg))
+            if (!traj.TryEvaluate(currentFrameF, out var rawXY, out var angDeg, out var rawVel, out var hasVel))
             {
                 if (wasActive) go.SetActive(false);
 
@@ -661,6 +878,13 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
 
             // --- 먼저 위치 계산/적용 (inactive여도 transform은 세팅 가능) ---
             Vector3 pos = MapRawToWorld(rawXY, pivot);
+
+            // Sanity check for position
+            if (!IsValidVector(pos))
+            {
+                // Skip update if position is invalid
+                continue;
+            }
 
             bool hasPrev = prevPosById.TryGetValue(id, out var oldPos);
             go.transform.position = pos;
@@ -678,6 +902,7 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
 
                 float target = (speedForFullWalk <= 1e-6f) ? 0f : Mathf.Clamp01(speed / speedForFullWalk);
                 if (speed < speedEpsilon) target = 0f;
+                if (float.IsNaN(target)) target = 0f; // Safety
 
                 if (blendDampTime > 0f) anim.SetFloat(blendParamName, target, blendDampTime, Time.deltaTime);
                 else anim.SetFloat(blendParamName, target);
@@ -690,11 +915,9 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
 
             if (applyYawFromAngle)
             {
-                Vector3 dir = Vector3.zero;
-
                 if (hasPrev)
                 {
-                    dir = pos - oldPos;
+                    Vector3 dir = pos - oldPos;
                     dir.y = 0f;
 
                     if (dir.sqrMagnitude > dirEpsilon * dirEpsilon)
@@ -702,18 +925,31 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
                 }
                 else
                 {
-                    // hasPrev가 없을 때: 다음/이전 샘플로 초기 dir 계산
-                    if (TryGetInitialDirFromTrajectory(traj, currentFrameF, pivot, out var initDir))
+                    if (hasVel)
                     {
-                        if (initDir.sqrMagnitude > dirEpsilon * dirEpsilon)
-                            lastDirById[id] = initDir.normalized;
+                        Vector3 d = MapVelToWorldDir(rawVel);
+                        if (d.sqrMagnitude > dirEpsilon * dirEpsilon)
+                            lastDirById[id] = d.normalized;
+                    }
+                    else
+                    {
+                        if (TryGetInitialDirFromTrajectory(traj, currentFrameF, pivot, out var initDir))
+                        {
+                            if (initDir.sqrMagnitude > dirEpsilon * dirEpsilon)
+                                lastDirById[id] = initDir.normalized;
+                        }
                     }
                 }
 
                 if (!lastDirById.TryGetValue(id, out var useDir) || useDir.sqrMagnitude < 1e-8f)
                     useDir = go.transform.forward;
 
+                // Sanitize useDir
+                if (!IsValidVector(useDir) || useDir.sqrMagnitude < 1e-8f)
+                    useDir = Vector3.forward;
+
                 float targetYaw = Mathf.Atan2(useDir.x, useDir.z) * Mathf.Rad2Deg + yawOffsetDeg;
+                if (float.IsNaN(targetYaw)) targetYaw = 0f;
 
                 // freshActivation 또는 hasPrev 없음: 즉시 스냅 (보이는 튐 방지)
                 if (freshActivation || !hasPrev || !smoothYaw)
@@ -731,6 +967,8 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
                         curYaw, targetYaw, ref vel,
                         yawSmoothTime, Mathf.Infinity, Time.deltaTime
                     );
+
+                    if (float.IsNaN(newYaw)) newYaw = targetYaw;
 
                     yawVelById[id] = vel;
                     go.transform.rotation = Quaternion.Euler(0f, newYaw, 0f);
@@ -794,8 +1032,8 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
 
             for (int i = 0; i < t.frames.Length; i++)
             {
-                Vector2 world2 = useHomography ? ApplyHomography(H, t.xy[i]) : t.xy[i];
-                var p = ToUnityXZ(world2) * worldScale + worldOffset;
+                Vector2 mapped2 = MapRawTo2D(t.xy[i]);
+                var p = Map2DToUnityWorld(mapped2);
                 sx += p.x;
                 sz += p.z;
                 cnt++;
@@ -816,10 +1054,16 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
         float y = h.m10 * u + h.m11 * v + h.m12;
         float w = h.m20 * u + h.m21 * v + h.m22;
 
-        if (!Mathf.Approximately(w, 0f))
+        if (Mathf.Abs(w) > 1e-5f)
         {
             x /= w;
             y /= w;
+        }
+        else
+        {
+            // Fallback for singular w
+            x *= 10000f; // Just to make it big but not Inf? Or keep as is?
+            y *= 10000f;
         }
         return new Vector2(x, y);
     }
@@ -915,9 +1159,7 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
                 var wp = new Vector3[t.frames.Length];
                 for (int i = 0; i < t.frames.Length; i++)
                 {
-                    Vector2 world2 = useHomography ? ApplyHomography(H, t.xy[i]) : t.xy[i];
-                    var p = ToUnityXZ(world2) * worldScale + worldOffset;
-                    if (rotateInWorld) p = RotateAroundY(p, pivot, rotateDeg);
+                    Vector3 p = MapRawToWorld(t.xy[i], pivot);
                     wp[i] = p;
                 }
 
@@ -966,11 +1208,33 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
         ExportWorldTrajectories(path, exportAngleFromMotion: true);
     }
 
+    [ContextMenu("Export WORLD Trajectories (S:\\home\\iiixr\\Documents)")]
+    void ExportWorldToSDrive()
+    {
+        string dir = @"S:\home\iiixr\Documents";
+        Directory.CreateDirectory(dir);
+
+        string file = $"zara_world_rot{rotateDeg:0}.txt";
+        string path = Path.Combine(dir, file);
+
+        ExportWorldTrajectories(path, exportAngleFromMotion: true);
+    }
+
     // ---------- getters ----------
     public float CurrentFrameF => currentFrameF;
     public int GlobalFrame => Mathf.FloorToInt(currentFrameF);
     public int MinFrame => globalMinFrame;
     public int MaxFrame => globalMaxFrame;
+
+    public float GetTrajectoryDuration(int agentId)
+    {
+        if (trajById.TryGetValue(agentId, out var traj) && traj.frames != null)
+        {
+            // [Modified] 20fps (or 25fps context) -> 0.04s per frame as requested
+            return traj.frames.Length * 0.04f;
+        }
+        return 0f;
+    }
 
     public Vector3 GetFinalWorldPosition(int agentId)
     {
@@ -985,6 +1249,10 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
     [Header("Trajectory Gizmos (ALL Agents)")]
     public bool drawAllTrajectories = false;
     public bool drawTrajectoriesInEditMode = true;
+
+    [Tooltip("Play 모드에서만 적용: 현재 activeInHierarchy인 agent의 trajectory만 그립니다.")]
+    public bool drawTrajectoriesOnlyForActiveAgents = false; // ✅ NEW
+
     public float trajY = 0.02f;
     [Min(1)] public int trajStride = 2;
     public bool drawTrajPoints = false;
