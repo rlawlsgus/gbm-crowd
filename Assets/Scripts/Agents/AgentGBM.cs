@@ -9,6 +9,15 @@ public class AgentGBM : AgentBase
         if (GetDistanceToGoal() <= 1.0f)
         {
             // Debug.Log($"[AgentGBM] {name} reached goal. Deactivating.");
+            
+            // Detach TrailRenderer if it exists so the path remains visible
+            TrailRenderer tr = GetComponentInChildren<TrailRenderer>();
+            if (tr != null)
+            {
+                tr.transform.SetParent(null);
+                tr.autodestruct = false; 
+            }
+
             GoalReached = true;
             gameObject.SetActive(false);
         }
