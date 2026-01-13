@@ -8,6 +8,7 @@ public class AgentBase : MonoBehaviour
 	public float AngularSpeed;
 	public Color Color = Color.white;
 	public Renderer Renderer;
+	public bool pdmMode = false;
 
 	float OrientedAngle(Vector2 v1, Vector2 v2) 
 	{

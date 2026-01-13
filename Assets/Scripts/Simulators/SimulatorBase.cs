@@ -54,6 +54,8 @@ public abstract class SimulatorBase : MonoBehaviour
 
 		foreach(T agent in agents) 
 		{
+            if (agent == null || !agent.gameObject.activeInHierarchy) continue;
+
 			SetupAgentCamera(agent);
 			SetupVisionShader(agent);
 

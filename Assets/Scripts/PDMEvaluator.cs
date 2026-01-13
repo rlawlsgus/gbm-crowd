@@ -82,27 +82,62 @@ public class PDMEvaluator : MonoBehaviour
             Debug.LogError("[PDMEvaluator] No SimulatorBase (GradientBasedModel or PureReactiveModel) found! Shadow Agents will not move correctly.");
         }
 
-        // Wait a frame to ensure Zara has spawned its agents (Awake -> Start)
         yield return null; 
         
-        // 4. Scan for initial agents
-        ScanForNewAgents();
-        
-        Debug.Log($"[PDMEvaluator] Started. Created {pairs.Count} pairs initially. Reset Interval: {resetInterval}s");
+        Debug.Log($"[PDMEvaluator] Started. Reset Interval: {resetInterval}s");
     }
 
-    void ScanForNewAgents()
+    // Sync in LateUpdate to match Zara's Update cycle (Zara moves agents in Update)
+    void LateUpdate()
     {
-        GameObject[] allObjects = FindObjectsOfType<GameObject>();
-        foreach (var go in allObjects)
+        if (zaraSimulator != null)
         {
-            if (go.name.StartsWith("ped_"))
+            SyncAgents();
+        }
+    }
+
+    void SyncAgents()
+    {
+        // Direct access to Zara's agents
+        var zaraAgents = zaraSimulator.GetAllAgents();
+        
+        foreach (var kv in zaraAgents)
+        {
+            int id = kv.Key;
+            GameObject gtObj = kv.Value;
+            bool gtActive = gtObj.activeSelf; 
+
+            if (gtActive)
             {
-                if (int.TryParse(go.name.Substring(4), out int id))
+                if (!pairs.ContainsKey(id))
                 {
-                    if (!pairs.ContainsKey(id))
+                    // Case 1: New Agent -> Create Shadow immediately
+                    CreatePair(id, gtObj.transform);
+                }
+                else
+                {
+                    // Case 2: Existing Agent -> Ensure Shadow is active if GT is active
+                    var pair = pairs[id];
+                    if (!pair.shadowAgentObj.activeSelf)
                     {
-                        CreatePair(id, go.transform);
+                        pair.shadowAgentObj.SetActive(true);
+                        // Force reset on re-activation to avoid jumps
+                        ForceReset(pair.shadowAgent, gtObj.transform.position, gtObj.transform.rotation * Quaternion.Euler(0, -90, 0));
+                        // Reset accumulators for the new active period
+                        pair.currentIntervalDiffSum = 0f;
+                        pair.currentIntervalFrameCount = 0;
+                    }
+                }
+            }
+            else
+            {
+                // GT Inactive
+                if (pairs.ContainsKey(id))
+                {
+                    var pair = pairs[id];
+                    if (pair.shadowAgentObj.activeSelf)
+                    {
+                        pair.shadowAgentObj.SetActive(false);
                     }
                 }
             }
@@ -111,18 +146,13 @@ public class PDMEvaluator : MonoBehaviour
 
     void CreatePair(int id, Transform gtTransform)
     {
-        // Note: GT Agent (Zara) is assumed to be invisible/data-only. We do not modify it.
-
         // Spawn Shadow Agent at GT position with -90 degree adjustment
         Quaternion adjustedRot = gtTransform.rotation * Quaternion.Euler(0, -90, 0);
         GameObject shadowObj = Instantiate(agentPrefab, gtTransform.position, adjustedRot);
         shadowObj.name = $"Shadow_Agent_{id}";
         
-        // Set Layer to "Obstacle" so Shadow Agents can see each other via the Simulator's Camera.
-        // Assuming Simulator renders "Obstacle" layer.
         shadowObj.layer = LayerMask.NameToLayer("Obstacle");
         
-        // Also ensure children (renderers) are on the layer
         foreach(Transform child in shadowObj.transform)
         {
             child.gameObject.layer = shadowObj.layer;
@@ -135,11 +165,10 @@ public class PDMEvaluator : MonoBehaviour
             return;
         }
 
-        // Retrieve Final Goal from Zara Simulator
         Vector3 finalGoal = zaraSimulator.GetFinalWorldPosition(id);
         shadowAgent.GoalPosition = finalGoal;
+        shadowAgent.pdmMode = true; // Set PDM mode to prevent auto-disable
         
-        // Register with Simulator
         if (shadowAgent is AgentGBM gbmAgent)
         {
             GradientBasedModel.AddAgent(gbmAgent);
@@ -157,7 +186,6 @@ public class PDMEvaluator : MonoBehaviour
             prevGtPos = gtTransform.position
         };
 
-        // Initialize with zero velocity
         ForceReset(shadowAgent, gtTransform.position, adjustedRot);
         
         pairs.Add(id, pair);
@@ -165,58 +193,41 @@ public class PDMEvaluator : MonoBehaviour
 
     void FixedUpdate()
     {
-        // if (pairs.Count == 0) return;
+        if (pairs.Count == 0) return;
 
         resetTimer += Time.fixedDeltaTime;
         bool isResetFrame = false;
 
         if (resetTimer >= resetInterval)
         {
-            ScanForNewAgents();
             isResetFrame = true;
             resetTimer = 0f;
         }
 
-        if (pairs.Count == 0) return;
-
         foreach (var pair in pairs.Values)
         {
             if (pair.gtTransform == null) continue;
-
-            bool gtActive = pair.gtTransform.gameObject.activeInHierarchy;
-            Vector3 currentGtPos = pair.gtTransform.position;
-
-            // Sync Active State
-            if (pair.shadowAgentObj.activeSelf != gtActive)
-            {
-                 pair.shadowAgentObj.SetActive(gtActive);
-                 if (gtActive)
-                 {
-                     ForceReset(pair.shadowAgent, currentGtPos, pair.gtTransform.rotation * Quaternion.Euler(0, -90, 0));
-                     pair.currentIntervalDiffSum = 0f;
-                     pair.currentIntervalFrameCount = 0;
-                 }
-            }
             
+            // Note: Sync is handled in LateUpdate, so we just check if it's currently active in hierarchy
+            if (!pair.gtTransform.gameObject.activeInHierarchy) continue; 
+
+            Vector3 currentGtPos = pair.gtTransform.position;
+            
+            // Only update prevPos here for delta calculations if needed
             pair.prevGtPos = currentGtPos;
 
-            if (!gtActive) continue;
-
-            // Use XZ plane for distance
             Vector3 gtPos = currentGtPos;
             Vector3 shadowPos = pair.shadowAgentObj.transform.position;
             float dist = Vector3.Distance(new Vector3(gtPos.x, 0, gtPos.z), new Vector3(shadowPos.x, 0, shadowPos.z));
 
             pair.currentIntervalDiffSum += dist;
             pair.currentIntervalFrameCount++;
-
+            
             if (isResetFrame)
             {
                 // --- Metrics Calculation ---
-                // FDE: The distance at this exact reset frame (final frame of interval)
                 fdeList.Add(dist);
 
-                // ADE: Average distance over this specific interval
                 if (pair.currentIntervalFrameCount > 0)
                 {
                     float avgIntervalDiff = pair.currentIntervalDiffSum / pair.currentIntervalFrameCount;
@@ -228,10 +239,8 @@ public class PDMEvaluator : MonoBehaviour
                 pair.currentIntervalFrameCount = 0;
 
                 // --- Reset Agent ---
-                // Force sync position to GT and reset velocity to zero
                 ForceReset(pair.shadowAgent, currentGtPos, pair.gtTransform.rotation * Quaternion.Euler(0, -90, 0));
                 
-                // Mark a break in the agent's path for visualization
                 if (generateMap)
                 {
                     pair.shadowPath.Add(Vector3.negativeInfinity);

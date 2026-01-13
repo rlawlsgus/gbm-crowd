@@ -19,7 +19,11 @@ public class AgentGBM : AgentBase
             }
 
             GoalReached = true;
-            gameObject.SetActive(false);
+            
+            if (!pdmMode)
+            {
+                gameObject.SetActive(false);
+            }
         }
     }
 }

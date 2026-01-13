@@ -1246,6 +1246,11 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
         return Vector3.zero;
     }
 
+    public IReadOnlyDictionary<int, GameObject> GetAllAgents()
+    {
+        return goById;
+    }
+
     [Header("Trajectory Gizmos (ALL Agents)")]
     public bool drawAllTrajectories = false;
     public bool drawTrajectoriesInEditMode = true;
