@@ -24,7 +24,7 @@ public class GBMMetricsEvaluator : MonoBehaviour
     private Dictionary<int, float> agentSpawnTimes = new Dictionary<int, float>();
     private HashSet<int> spawnedAgentIDs = new HashSet<int>();
     private Collider[] obstacleColliders;
-    
+
     // --- Metrics Data ---
     // For raw data export
     private struct MetricDataPoint
@@ -40,8 +40,16 @@ public class GBMMetricsEvaluator : MonoBehaviour
     // For aggregated report
     private List<float> stepAvgAgentDists = new List<float>();
     private List<float> stepAvgObstacleDists = new List<float>();
+
+    // Aggregation Dictionaries
     private Dictionary<int, List<float>> agentDistByCount = new Dictionary<int, List<float>>();
     private Dictionary<int, List<float>> obsDistByCount = new Dictionary<int, List<float>>();
+
+    private Dictionary<int, List<float>> agentDistByAge = new Dictionary<int, List<float>>();
+    private Dictionary<int, List<float>> obsDistByAge = new Dictionary<int, List<float>>();
+
+    private Dictionary<int, List<float>> agentDistByGoalDist = new Dictionary<int, List<float>>();
+    private Dictionary<int, List<float>> obsDistByGoalDist = new Dictionary<int, List<float>>();
 
     // --- Agent Abstraction ---
     private interface IGBMAgent
@@ -73,7 +81,16 @@ public class GBMMetricsEvaluator : MonoBehaviour
         // 0. Reset State
         GradientBasedModel.ClearAgents();
         spawnedAgentIDs.Clear();
-        allMetrics.Clear();
+
+        // Clear Aggregates
+        stepAvgAgentDists.Clear();
+        stepAvgObstacleDists.Clear();
+        agentDistByCount.Clear();
+        obsDistByCount.Clear();
+        agentDistByAge.Clear();
+        obsDistByAge.Clear();
+        agentDistByGoalDist.Clear();
+        obsDistByGoalDist.Clear();
 
         // 1. Dependencies Check
         if (simulator == null) simulator = FindObjectOfType<ZaraGroupRotationSimulator>();
@@ -100,8 +117,8 @@ public class GBMMetricsEvaluator : MonoBehaviour
 
         // 2. Initialize Simulator
         // Ensure simulator is playing
-        simulator.Play(); 
-        
+        simulator.Play();
+
         // 3. Start Evaluation Loop
         StartCoroutine(EvaluationLoop());
     }
@@ -131,7 +148,7 @@ public class GBMMetricsEvaluator : MonoBehaviour
             {
                 SpawnGBMAgent(id, child);
             }
-            
+
             // Hide GT agent to avoid visual clutter/z-fighting, 
             // but keep it active so Simulator logic continues.
             // Note: If Simulator resets active state, this might flicker.
@@ -145,7 +162,7 @@ public class GBMMetricsEvaluator : MonoBehaviour
     {
         Vector3 startPos = gtTransform.position;
         Quaternion startRot = gtTransform.rotation;
-        
+
         GameObject agentObj = Instantiate(agentPrefab, startPos, startRot);
         agentObj.name = $"GBM_Agent_{id}";
 
@@ -164,7 +181,7 @@ public class GBMMetricsEvaluator : MonoBehaviour
 
         // Configure Agent
         gbmAgent.pdmMode = true; // Enable standalone mode (bypassing Manager)
-        
+
         Vector3 finalGoal = simulator.GetFinalWorldPosition(id);
         gbmAgent.GoalPosition = finalGoal;
 
@@ -213,14 +230,14 @@ public class GBMMetricsEvaluator : MonoBehaviour
                         continue;
                     }
                 }
-                
+
                 // 3. Check if goal reached
                 if (agent.GoalReached)
                 {
                     // Debug.Log($"[GBMMetricsEvaluator] Agent {id} reached its goal. Removing.");
                     // The agent handles its own destruction/deactivation, but we must remove it from metrics.
                     // Destroying here might be redundant if agent deactivates, but is safe.
-                    Destroy(agent.gameObject); 
+                    Destroy(agent.gameObject);
                     agentsToRemove.Add(id);
                     continue;
                 }
@@ -289,30 +306,41 @@ public class GBMMetricsEvaluator : MonoBehaviour
                 }
             }
 
-            // 3. Store Raw Data Point
-            allMetrics.Add(new MetricDataPoint
-            {
-                TimeSinceSpawn = Time.time - agentSpawnTimes[agent.ID],
-                DistanceToGoal = agent.GetDistanceToGoal(),
-                MinNeighborDist = (minNeighborDist <= maxScanDistance) ? minNeighborDist : float.PositiveInfinity,
-                MinObstacleDist = (minObstacleDist <= maxScanDistance) ? minObstacleDist : float.PositiveInfinity,
-                ActiveAgentCount = count
-            });
+            // 3. Collect Data for Aggregation
+            int age = Mathf.FloorToInt(Time.time - agentSpawnTimes[agent.ID]);
+            int distToGoal = Mathf.FloorToInt(agent.GetDistanceToGoal());
 
-            // 4. Accumulate for step-wide average (maintaining old report style)
+            // Only consider valid distances for averaging
             if (minNeighborDist <= maxScanDistance)
             {
                 stepSumNeighbor += minNeighborDist;
                 stepValidNeighbor++;
+
+                // By Age
+                if (!agentDistByAge.ContainsKey(age)) agentDistByAge[age] = new List<float>();
+                agentDistByAge[age].Add(minNeighborDist);
+
+                // By Goal Dist
+                if (!agentDistByGoalDist.ContainsKey(distToGoal)) agentDistByGoalDist[distToGoal] = new List<float>();
+                agentDistByGoalDist[distToGoal].Add(minNeighborDist);
             }
+
             if (minObstacleDist <= maxScanDistance)
             {
                 stepSumObs += minObstacleDist;
                 stepValidObs++;
+
+                // By Age
+                if (!obsDistByAge.ContainsKey(age)) obsDistByAge[age] = new List<float>();
+                obsDistByAge[age].Add(minObstacleDist);
+
+                // By Goal Dist
+                if (!obsDistByGoalDist.ContainsKey(distToGoal)) obsDistByGoalDist[distToGoal] = new List<float>();
+                obsDistByGoalDist[distToGoal].Add(minObstacleDist);
             }
         }
 
-        // 5. Update aggregated lists for summary report
+        // 4. Update aggregated lists for summary report
         float avgNeighbor = (stepValidNeighbor > 0) ? stepSumNeighbor / stepValidNeighbor : 0f;
         if (stepValidNeighbor > 0)
         {
@@ -340,7 +368,7 @@ public class GBMMetricsEvaluator : MonoBehaviour
         System.Text.StringBuilder sb = new System.Text.StringBuilder();
 
         sb.AppendLine("============================================");
-        sb.AppendLine("       GBM CROWD EVALUATION REPORT          ");
+        sb.AppendLine("       GBM CROWD METRICS REPORT             ");
         sb.AppendLine("============================================");
         sb.AppendLine($" Date                 : {DateTime.Now}");
         sb.AppendLine($" Agent Prefab         : {(agentPrefab != null ? agentPrefab.name : "None")}");
@@ -364,10 +392,40 @@ public class GBMMetricsEvaluator : MonoBehaviour
             string oStr = obsDistByCount.ContainsKey(c) ? $"{obsDistByCount[c].Average():F4}m" : "N/A";
             sb.AppendLine($" Agents: {c,2} | Neighbor: {aStr,8} | Obstacle: {oStr,8}");
         }
+
+        sb.AppendLine("============================================");
+        sb.AppendLine("       METRICS BY AGENT AGE (SEC)           ");
+        sb.AppendLine("============================================");
+
+        var allAgeKeys = new HashSet<int>(agentDistByAge.Keys);
+        allAgeKeys.UnionWith(obsDistByAge.Keys);
+        var sortedAgeKeys = allAgeKeys.OrderBy(k => k).ToList();
+
+        foreach (int age in sortedAgeKeys)
+        {
+            string aStr = agentDistByAge.ContainsKey(age) ? $"{agentDistByAge[age].Average():F4}m" : "N/A";
+            string oStr = obsDistByAge.ContainsKey(age) ? $"{obsDistByAge[age].Average():F4}m" : "N/A";
+            sb.AppendLine($" Age: {age,3}s | Neighbor: {aStr,8} | Obstacle: {oStr,8}");
+        }
+
+        sb.AppendLine("============================================");
+        sb.AppendLine("       METRICS BY GOAL DISTANCE (M)         ");
+        sb.AppendLine("============================================");
+
+        var allDistKeys = new HashSet<int>(agentDistByGoalDist.Keys);
+        allDistKeys.UnionWith(obsDistByGoalDist.Keys);
+        var sortedDistKeys = allDistKeys.OrderBy(k => k).ToList();
+
+        foreach (int d in sortedDistKeys)
+        {
+            string aStr = agentDistByGoalDist.ContainsKey(d) ? $"{agentDistByGoalDist[d].Average():F4}m" : "N/A";
+            string oStr = obsDistByGoalDist.ContainsKey(d) ? $"{obsDistByGoalDist[d].Average():F4}m" : "N/A";
+            sb.AppendLine($" Dist: {d,3}m | Neighbor: {aStr,8} | Obstacle: {oStr,8}");
+        }
         sb.AppendLine("============================================");
 
         string content = sb.ToString();
-        Debug.Log(content);
+        // Debug.Log(content);
 
         try
         {
@@ -383,39 +441,9 @@ public class GBMMetricsEvaluator : MonoBehaviour
         }
     }
 
-    void SaveRawData()
-    {
-        if (allMetrics.Count == 0) return;
-
-        System.Text.StringBuilder sb = new System.Text.StringBuilder();
-        sb.AppendLine("TimeSinceSpawn,DistanceToGoal,MinNeighborDist,MinObstacleDist,ActiveAgentCount");
-
-        foreach (var dp in allMetrics)
-        {
-            string neighborDist = float.IsPositiveInfinity(dp.MinNeighborDist) ? "" : dp.MinNeighborDist.ToString("F4");
-            string obstacleDist = float.IsPositiveInfinity(dp.MinObstacleDist) ? "" : dp.MinObstacleDist.ToString("F4");
-
-            sb.AppendLine($"{dp.TimeSinceSpawn:F4},{dp.DistanceToGoal:F4},{neighborDist},{obstacleDist},{dp.ActiveAgentCount}");
-        }
-
-        try
-        {
-            if (!Directory.Exists(outputFolder)) Directory.CreateDirectory(outputFolder);
-            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-            string path = Path.Combine(outputFolder, $"{fileNamePrefix}_RawData_{timestamp}.csv");
-            File.WriteAllText(path, sb.ToString());
-            Debug.Log($"[GBMMetricsEvaluator] Raw data saved: {path}");
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"Failed to save raw data: {ex.Message}");
-        }
-    }
-
     void OnApplicationQuit()
     {
         SaveReport();
-        SaveRawData();
         GradientBasedModel.ClearAgents();
     }
 }
