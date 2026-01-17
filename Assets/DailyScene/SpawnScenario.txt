@@ -1,0 +1,576 @@
+=== Spawn Scenario Record ===
+{
+  "totalAgents": 30,
+  "spawns": [
+    {
+      "sidewalkIndex": 20,
+      "type": "Group",
+      "agents": [
+        {
+          "spawnId": 0,
+          "agentName": "Agent_0",
+          "position": [
+            -37.0,
+            0.0,
+            7.5
+          ],
+          "goalPosition": [
+            -22.4999771,
+            0.0,
+            -12.5000229
+          ],
+          "groupSize": 3
+        },
+        {
+          "spawnId": 1,
+          "agentName": "Agent_1",
+          "position": [
+            -37.75,
+            0.0,
+            7.93301249
+          ],
+          "goalPosition": [
+            -22.4999771,
+            0.0,
+            -12.5000229
+          ],
+          "groupSize": 3
+        },
+        {
+          "spawnId": 2,
+          "agentName": "Agent_2",
+          "position": [
+            -37.75,
+            0.0,
+            7.066987
+          ],
+          "goalPosition": [
+            -22.4999771,
+            0.0,
+            -12.5000229
+          ],
+          "groupSize": 3
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 6,
+      "type": "Single",
+      "agents": [
+        {
+          "spawnId": 3,
+          "agentName": "Agent_3",
+          "position": [
+            7.50004,
+            0.0,
+            12.5000391
+          ],
+          "goalPosition": [
+            7.500004,
+            0.0,
+            -12.4999962
+          ],
+          "groupSize": 1
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 4,
+      "type": "Single",
+      "agents": [
+        {
+          "spawnId": 4,
+          "agentName": "Agent_4",
+          "position": [
+            7.5,
+            0.0,
+            7.49999952
+          ],
+          "goalPosition": [
+            -27.5,
+            0.0,
+            12.5
+          ],
+          "groupSize": 1
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 2,
+      "type": "Group",
+      "agents": [
+        {
+          "spawnId": 5,
+          "agentName": "Agent_5",
+          "position": [
+            -7.000029,
+            0.0,
+            12.4999723
+          ],
+          "goalPosition": [
+            -12.4999781,
+            0.0,
+            -12.5000229
+          ],
+          "groupSize": 3
+        },
+        {
+          "spawnId": 6,
+          "agentName": "Agent_6",
+          "position": [
+            -7.750029,
+            0.0,
+            12.9329853
+          ],
+          "goalPosition": [
+            -12.4999781,
+            0.0,
+            -12.5000229
+          ],
+          "groupSize": 3
+        },
+        {
+          "spawnId": 7,
+          "agentName": "Agent_7",
+          "position": [
+            -7.750029,
+            0.0,
+            12.0669594
+          ],
+          "goalPosition": [
+            -12.4999781,
+            0.0,
+            -12.5000229
+          ],
+          "groupSize": 3
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 1,
+      "type": "Group",
+      "agents": [
+        {
+          "spawnId": 8,
+          "agentName": "Agent_8",
+          "position": [
+            -27.0,
+            0.0,
+            7.5
+          ],
+          "goalPosition": [
+            -22.4999771,
+            0.0,
+            -12.5000229
+          ],
+          "groupSize": 3
+        },
+        {
+          "spawnId": 9,
+          "agentName": "Agent_9",
+          "position": [
+            -27.75,
+            0.0,
+            7.93301249
+          ],
+          "goalPosition": [
+            -22.4999771,
+            0.0,
+            -12.5000229
+          ],
+          "groupSize": 3
+        },
+        {
+          "spawnId": 10,
+          "agentName": "Agent_10",
+          "position": [
+            -27.75,
+            0.0,
+            7.066987
+          ],
+          "goalPosition": [
+            -22.4999771,
+            0.0,
+            -12.5000229
+          ],
+          "groupSize": 3
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 9,
+      "type": "Group",
+      "agents": [
+        {
+          "spawnId": 11,
+          "agentName": "Agent_11",
+          "position": [
+            -32.0000343,
+            0.0,
+            2.50003481
+          ],
+          "goalPosition": [
+            -17.5000343,
+            0.0,
+            2.50003481
+          ],
+          "groupSize": 2
+        },
+        {
+          "spawnId": 12,
+          "agentName": "Agent_12",
+          "position": [
+            -33.0000343,
+            0.0,
+            2.50003481
+          ],
+          "goalPosition": [
+            -17.5000343,
+            0.0,
+            2.50003481
+          ],
+          "groupSize": 2
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 17,
+      "type": "Single",
+      "agents": [
+        {
+          "spawnId": 13,
+          "agentName": "Agent_13",
+          "position": [
+            -17.5000343,
+            0.0,
+            2.50003481
+          ],
+          "goalPosition": [
+            -12.5000343,
+            0.0,
+            2.50003481
+          ],
+          "groupSize": 1
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 18,
+      "type": "Single",
+      "agents": [
+        {
+          "spawnId": 14,
+          "agentName": "Agent_14",
+          "position": [
+            7.499996,
+            0.0,
+            2.50000429
+          ],
+          "goalPosition": [
+            -32.5000343,
+            0.0,
+            2.50003481
+          ],
+          "groupSize": 1
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 8,
+      "type": "Single",
+      "agents": [
+        {
+          "spawnId": 15,
+          "agentName": "Agent_15",
+          "position": [
+            -27.5000343,
+            0.0,
+            2.50003481
+          ],
+          "goalPosition": [
+            -17.4999771,
+            0.0,
+            -12.5000229
+          ],
+          "groupSize": 1
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 12,
+      "type": "Single",
+      "agents": [
+        {
+          "spawnId": 16,
+          "agentName": "Agent_16",
+          "position": [
+            -12.4999781,
+            0.0,
+            -12.5000229
+          ],
+          "goalPosition": [
+            7.50004,
+            0.0,
+            12.5000391
+          ],
+          "groupSize": 1
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 15,
+      "type": "Single",
+      "agents": [
+        {
+          "spawnId": 17,
+          "agentName": "Agent_17",
+          "position": [
+            -17.4999771,
+            0.0,
+            -12.5000229
+          ],
+          "goalPosition": [
+            -37.5,
+            0.0,
+            12.5
+          ],
+          "groupSize": 1
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 0,
+      "type": "Single",
+      "agents": [
+        {
+          "spawnId": 18,
+          "agentName": "Agent_18",
+          "position": [
+            -27.5,
+            0.0,
+            12.5
+          ],
+          "goalPosition": [
+            -32.5000343,
+            0.0,
+            2.50003481
+          ],
+          "groupSize": 1
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 14,
+      "type": "Single",
+      "agents": [
+        {
+          "spawnId": 19,
+          "agentName": "Agent_19",
+          "position": [
+            -7.49997854,
+            0.0,
+            -12.4999866
+          ],
+          "goalPosition": [
+            7.5,
+            0.0,
+            7.49999952
+          ],
+          "groupSize": 1
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 3,
+      "type": "Single",
+      "agents": [
+        {
+          "spawnId": 20,
+          "agentName": "Agent_20",
+          "position": [
+            -32.4999771,
+            0.0,
+            -12.5000229
+          ],
+          "goalPosition": [
+            7.499996,
+            0.0,
+            2.50000429
+          ],
+          "groupSize": 1
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 13,
+      "type": "Single",
+      "agents": [
+        {
+          "spawnId": 21,
+          "agentName": "Agent_21",
+          "position": [
+            -27.4999771,
+            0.0,
+            -12.5000229
+          ],
+          "goalPosition": [
+            7.50004,
+            0.0,
+            12.5000391
+          ],
+          "groupSize": 1
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 11,
+      "type": "Single",
+      "agents": [
+        {
+          "spawnId": 22,
+          "agentName": "Agent_22",
+          "position": [
+            -22.4999771,
+            0.0,
+            -12.5000229
+          ],
+          "goalPosition": [
+            -27.5,
+            0.0,
+            12.5
+          ],
+          "groupSize": 1
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 5,
+      "type": "Group",
+      "agents": [
+        {
+          "spawnId": 23,
+          "agentName": "Agent_23",
+          "position": [
+            -7.000029,
+            0.0,
+            7.49997234
+          ],
+          "goalPosition": [
+            -32.5000343,
+            0.0,
+            2.50003481
+          ],
+          "groupSize": 2
+        },
+        {
+          "spawnId": 24,
+          "agentName": "Agent_24",
+          "position": [
+            -8.000029,
+            0.0,
+            7.49997234
+          ],
+          "goalPosition": [
+            -32.5000343,
+            0.0,
+            2.50003481
+          ],
+          "groupSize": 2
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 16,
+      "type": "Single",
+      "agents": [
+        {
+          "spawnId": 25,
+          "agentName": "Agent_25",
+          "position": [
+            -22.5000343,
+            0.0,
+            2.50003481
+          ],
+          "goalPosition": [
+            -27.5,
+            0.0,
+            12.5
+          ],
+          "groupSize": 1
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 22,
+      "type": "Single",
+      "agents": [
+        {
+          "spawnId": 26,
+          "agentName": "Agent_26",
+          "position": [
+            -37.5000343,
+            0.0,
+            2.50003481
+          ],
+          "goalPosition": [
+            -7.500029,
+            0.0,
+            12.4999723
+          ],
+          "groupSize": 1
+        }
+      ]
+    },
+    {
+      "sidewalkIndex": 21,
+      "type": "Group",
+      "agents": [
+        {
+          "spawnId": 27,
+          "agentName": "Agent_27",
+          "position": [
+            -37.0,
+            0.0,
+            12.5
+          ],
+          "goalPosition": [
+            -27.5000343,
+            0.0,
+            2.50003481
+          ],
+          "groupSize": 3
+        },
+        {
+          "spawnId": 28,
+          "agentName": "Agent_28",
+          "position": [
+            -37.75,
+            0.0,
+            12.933013
+          ],
+          "goalPosition": [
+            -27.5000343,
+            0.0,
+            2.50003481
+          ],
+          "groupSize": 3
+        },
+        {
+          "spawnId": 29,
+          "agentName": "Agent_29",
+          "position": [
+            -37.75,
+            0.0,
+            12.066987
+          ],
+          "goalPosition": [
+            -27.5000343,
+            0.0,
+            2.50003481
+          ],
+          "groupSize": 3
+        }
+      ]
+    }
+  ]
+}

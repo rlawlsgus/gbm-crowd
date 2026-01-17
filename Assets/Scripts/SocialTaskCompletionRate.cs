@@ -19,7 +19,7 @@ public class SocialTaskCompletionRate : MonoBehaviour
     public Transform dangerZonesRoot;
     [Tooltip("The parent object containing all Obstacle cubes. Will auto-find 'Obstacles' if null.")]
     public Transform obstaclesRoot;
-    
+
     [Header("References")]
     public TestManager testManager;
 
@@ -153,6 +153,13 @@ public class SocialTaskCompletionRate : MonoBehaviour
                 RegisterAgent(child);
             }
         }
+
+        // 3. Fallback: Find all AgentGBM in scene
+        AgentGBM[] allAgents = FindObjectsOfType<AgentGBM>();
+        foreach (var agent in allAgents)
+        {
+            RegisterAgent(agent.transform);
+        }
     }
 
     private void RegisterAgent(Transform agentTransform)
@@ -232,7 +239,7 @@ public class SocialTaskCompletionRate : MonoBehaviour
             {
                 Vector3 currentPos = agent.position;
                 bool isDanger = (data.dangerZoneTime > 0) && IsInDangerZone(data.agentCollider); // Simple visualization check
-                
+
                 if (data.trajectory.Count == 0 || Vector3.Distance(data.trajectory[data.trajectory.Count - 1].position, currentPos) >= minRecordDistance)
                 {
                     data.trajectory.Add(new TrajectoryPoint(currentPos, isDanger));
@@ -300,21 +307,21 @@ public class SocialTaskCompletionRate : MonoBehaviour
     /// </summary>
     public float CalculateRate(AgentTrackingData data)
     {
-        if (data.totalTime <= 0.0001f) return 1f; 
+        if (data.totalTime <= 0.0001f) return 1f;
 
         // Summing up times. Note: Overlap is possible (e.g., agent collides with another agent INSIDE a danger zone).
         // This is a simple summation; weights can be adjusted if needed.
         // The prompt asked to include Agent Collision in Safe Rate.
-        
+
         float combinedUnsafeTime = data.dangerZoneTime + data.obstacleTime + data.agentCollisionTime;
-        
+
         // Clamp to ensure it doesn't exceed totalTime (though physically it could if we double count separate events, 
         // but here we are just taking duration. If multiple overlap, time flows same.)
         // Actually, if we just sum them, it might exceed totalTime if they happen simultaneously. 
         // A better approach for "Safe Rate" is: Time spent in ANY unsafe state / Total Time.
         // But tracking "Any Unsafe State" per frame is better.
         // For now, I will stick to the requested metric sum, but clamp result.
-        
+
         float rate = 1.0f - (combinedUnsafeTime / data.totalTime);
         return Mathf.Clamp01(rate);
     }
@@ -325,13 +332,14 @@ public class SocialTaskCompletionRate : MonoBehaviour
 
         int successCount = 0;
         int totalAgents = 0;
-        
+
         List<float> successSafeRates = new List<float>();
-        
+
         // Accumulators for specific violation rates (averaged across ALL agents or Success agents? Usually Success)
         List<float> dangerZoneRates = new List<float>();
         List<float> obstacleRates = new List<float>();
         List<float> agentCollisionRates = new List<float>();
+        List<float> arrivalTimes = new List<float>();
 
         foreach (var kvp in trackingData)
         {
@@ -344,25 +352,38 @@ public class SocialTaskCompletionRate : MonoBehaviour
             {
                 successCount++;
                 successSafeRates.Add(CalculateRate(data));
-                
+
                 dangerZoneRates.Add(data.dangerZoneTime / data.totalTime);
                 obstacleRates.Add(data.obstacleTime / data.totalTime);
                 agentCollisionRates.Add(data.agentCollisionTime / data.totalTime);
+                arrivalTimes.Add(data.totalTime);
             }
         }
 
         float successRate = totalAgents > 0 ? (float)successCount / totalAgents : 0f;
-        
+
         float avgSafeRate = successSafeRates.Count > 0 ? successSafeRates.Average() : 0f;
         float avgDangerZoneRate = dangerZoneRates.Count > 0 ? dangerZoneRates.Average() : 0f;
         float avgObstacleRate = obstacleRates.Count > 0 ? obstacleRates.Average() : 0f;
         float avgAgentCollRate = agentCollisionRates.Count > 0 ? agentCollisionRates.Average() : 0f;
+
+        // Calculate Time Statistics
+        float meanTime = 0f;
+        float stdTime = 0f;
+
+        if (arrivalTimes.Count > 0)
+        {
+            meanTime = arrivalTimes.Average();
+            float sumSquaredDiff = arrivalTimes.Sum(t => (t - meanTime) * (t - meanTime));
+            stdTime = Mathf.Sqrt(sumSquaredDiff / arrivalTimes.Count);
+        }
 
         Debug.Log($"[Overall] Success Rate: {successRate * 100:F2}% ({successCount}/{totalAgents})");
         Debug.Log($"[Safety (Successes)] Avg Safe Rate: {avgSafeRate * 100:F2}%");
         Debug.Log($"   - Danger Zone Violation Rate: {avgDangerZoneRate * 100:F2}%");
         Debug.Log($"   - Obstacle Collision Rate: {avgObstacleRate * 100:F2}%");
         Debug.Log($"   - Agent Collision Rate: {avgAgentCollRate * 100:F2}%");
+        Debug.Log($"[Time] Avg Travel Time: {meanTime:F2}s (StdDev: {stdTime:F2}s)");
 
         Debug.Log("==========================================");
 
@@ -380,8 +401,8 @@ public class SocialTaskCompletionRate : MonoBehaviour
         for (int i = 0; i < resetColor.Length; i++) resetColor[i] = Color.white;
         texture.SetPixels(resetColor);
 
-        float minX = -mapWidth / 2f;
-        float minZ = -mapHeight / 2f;
+        float minX = transform.position.x - mapWidth / 2f;
+        float minZ = transform.position.z - mapHeight / 2f;
 
         // 1. Draw Danger Zones (Blue Outline)
         DrawColliders(texture, dangerZoneColliders, dangerZoneOutlineColor, minX, minZ);
