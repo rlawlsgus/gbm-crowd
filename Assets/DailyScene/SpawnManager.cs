@@ -13,6 +13,9 @@ public class SpawnManager : MonoBehaviour
     public GameObject agentPrefab; // Assign the CCP Agent Prefab here
     public Transform SpawnedAgentParent;
 
+    [Header("General Settings")]
+    public bool autoStart = false;
+
     [Header("Spawn Settings")]
     public string scenarioFileName = "SpawnScenario.txt";
     public bool disableAgentsOnGoal = true;
@@ -41,6 +44,14 @@ public class SpawnManager : MonoBehaviour
         public float[] position;
         public float[] goalPosition;
         public int groupSize;
+    }
+
+    private void Start()
+    {
+        if (autoStart)
+        {
+            OnClickSpawn();
+        }
     }
 
     public void OnClickSpawn()
@@ -122,11 +133,11 @@ public class SpawnManager : MonoBehaviour
     {
         agent.pdmMode = !disableAgentsOnGoal;
         agent.GoalPosition = goalPos;
-        
+
         agent.transform.position = spawnPos;
         agent.Velocity = Vector3.zero;
         agent.GoalReached = false;
-        
+
         GradientBasedModel.AddAgent(agent);
     }
 }

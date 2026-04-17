@@ -60,7 +60,7 @@ public abstract class SimulatorBase : MonoBehaviour
 			SetupVisionShader(agent);
 
 			int originalCullingMask = AgentCamera.cullingMask;
-			AgentCamera.cullingMask = 1 << LayerMask.NameToLayer("Obstacle");
+			AgentCamera.cullingMask = (1 << LayerMask.NameToLayer("Obstacle")) | (1 << LayerMask.NameToLayer("InvisibleObstacle"));
 			AgentCamera.Render();
 			AgentCamera.cullingMask = originalCullingMask;
 

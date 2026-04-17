@@ -22,6 +22,7 @@ public class SocialTaskCompletionRate : MonoBehaviour
 
     [Header("References")]
     public TestManager testManager;
+    public GBMMetricsEvaluator gbmEvaluator;
 
     [Header("Trajectory Map Settings")]
     public bool enableTrajectoryMap = true;
@@ -73,6 +74,11 @@ public class SocialTaskCompletionRate : MonoBehaviour
         if (testManager == null)
         {
             testManager = FindObjectOfType<TestManager>();
+        }
+
+        if (gbmEvaluator == null)
+        {
+            gbmEvaluator = FindObjectOfType<GBMMetricsEvaluator>();
         }
 
         // Auto-find Danger Zones if not assigned
@@ -141,6 +147,16 @@ public class SocialTaskCompletionRate : MonoBehaviour
             {
                 if (agent == null) continue;
                 RegisterAgent(agent.transform);
+            }
+        }
+
+        // 1.5 Try finding agents via GBMMetricsEvaluator
+        if (gbmEvaluator != null)
+        {
+            var gbmAgents = gbmEvaluator.GetActiveAgents();
+            foreach (var agent in gbmAgents)
+            {
+                if (agent != null) RegisterAgent(agent.transform);
             }
         }
 

@@ -5,10 +5,12 @@ using System.Linq;
 
 public class TestManager : MonoBehaviour
 {
-    public enum ScenarioType { Intersection, Intersection2, Hallway, Density }
+    public enum ScenarioType { Intersection, Hallway, Density }
+    public enum AgentCount { Count_3 = 3, Count_6 = 6, Count_9 = 9, Count_12 = 12 }
 
     [Header("Settings")]
     public ScenarioType scenario = ScenarioType.Intersection;
+    public AgentCount agentCount = AgentCount.Count_9;
     public GameObject agentPrefab;
     public float gridSpacing = 2.0f; // Spacing between agents
 
@@ -55,14 +57,6 @@ public class TestManager : MonoBehaviour
 
             // 2. Z-axis Group (Start: x=0, z=15 -> Goal: x=0, z=-15) [Straight]
             SpawnGroup(new Vector3(0, 0, 15), new Vector3(0, 0, -15), Quaternion.Euler(0, 180, 0));
-        }
-        else if (scenario == ScenarioType.Intersection2)
-        {
-            // 1. X-axis Group (Start: x=15, z=0 -> Goal: x=0, z=-15) [Turn Left]
-            SpawnGroup(new Vector3(15, 0, 0), new Vector3(0, 0, -15), Quaternion.Euler(0, -90, 0));
-
-            // 2. Z-axis Group (Start: x=0, z=15 -> Goal: x=-15, z=0) [Turn Right]
-            SpawnGroup(new Vector3(0, 0, 15), new Vector3(-15, 0, 0), Quaternion.Euler(0, 180, 0));
         }
         else if (scenario == ScenarioType.Hallway)
         {
@@ -139,7 +133,7 @@ public class TestManager : MonoBehaviour
             Vector3 dir = goalPos - spawnPos;
             Quaternion initialRot = Quaternion.identity;
             if (dir != Vector3.zero) initialRot = Quaternion.LookRotation(dir);
-            
+
             // Apply -90 degree offset to match GBM coordinate system
             initialRot *= Quaternion.Euler(0, -90f, 0);
 
@@ -172,23 +166,27 @@ public class TestManager : MonoBehaviour
 
     void SpawnGroup(Vector3 centerPos, Vector3 targetPos, Quaternion initialRotation)
     {
-        // 3x3 Grid
-        int rows = 3;
-        int cols = 3;
+        // widthCount is fixed to 3 (across the direction of travel)
+        // depthCount depends on the total agentCount
+        int total = (int)agentCount;
+        int widthCount = 3;
+        int depthCount = total / widthCount;
 
-        // Calculate start point so centerPos is the center of the grid
-        float startX = centerPos.x - (cols - 1) * gridSpacing * 0.5f;
-        float startZ = centerPos.z - (rows - 1) * gridSpacing * 0.5f;
-
-        for (int r = 0; r < rows; r++)
+        for (int d = 0; d < depthCount; d++)
         {
-            for (int c = 0; c < cols; c++)
+            for (int w = 0; w < widthCount; w++)
             {
-                Vector3 spawnPos = new Vector3(
-                    startX + c * gridSpacing,
-                    0.05f, // Raise slightly off the floor
-                    startZ + r * gridSpacing
-                );
+                // Local coordinates:
+                // x is across the direction of travel (width)
+                // z is along the direction of travel (depth)
+                float localX = (w - (widthCount - 1) * 0.5f) * gridSpacing;
+                float localZ = (d - (depthCount - 1) * 0.5f) * gridSpacing;
+
+                Vector3 localOffset = new Vector3(localX, 0, localZ);
+                Vector3 worldOffset = initialRotation * localOffset;
+
+                Vector3 spawnPos = centerPos + worldOffset;
+                spawnPos.y = 0.05f;
 
                 // Apply -90 degree offset to match GBM coordinate system
                 Quaternion adjustedRotation = initialRotation * Quaternion.Euler(0, -90f, 0);
@@ -198,8 +196,8 @@ public class TestManager : MonoBehaviour
 
                 // Create Goal object (Assign individual goal for each agent)
                 // Maintain grid formation relative to center
-                Vector3 offset = spawnPos - centerPos;
-                Vector3 finalGoalPos = targetPos + offset;
+                Vector3 finalGoalPos = targetPos + worldOffset;
+                finalGoalPos.y = 0.05f;
 
                 GameObject goalObj = new GameObject($"{agent.name}_Goal");
                 goalObj.transform.position = finalGoalPos;

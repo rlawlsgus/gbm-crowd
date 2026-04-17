@@ -60,6 +60,8 @@ providers = {
 objectSelectors = {
 }
 recentSearches = [
+	"h: #m_layer=<$layer:6, Obstacle$>"
+	"h: #m_layer=<$layer:0, Default$>"
 ]
 searchItemFavorites = [
 ]
@@ -68,7 +70,7 @@ showSavedSearchPanel = false
 hideTabs = false
 expandedQueries = [
 ]
-queryBuilder = true
+queryBuilder = false
 ignoredProperties = "id;name;classname;imagecontentshash"
 helperWidgetCurrentArea = "all"
 disabledIndexers = ""

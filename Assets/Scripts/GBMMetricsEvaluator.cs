@@ -15,12 +15,27 @@ public class GBMMetricsEvaluator : MonoBehaviour
     public float agentTimeout = 60.0f; // Agents older than this will be removed
 
     [Header("Metrics Settings")]
+    public bool enableMetrics = true;
     public float maxScanDistance = 5.0f;
     public string outputFolder = "Assets/Analysis_Output_GBM";
     public string fileNamePrefix = "GBM_Metrics_Report";
 
     // Internal State
     private Dictionary<int, IGBMAgent> activeAgents = new Dictionary<int, IGBMAgent>();
+
+    public List<AgentGBM> GetActiveAgents()
+    {
+        List<AgentGBM> list = new List<AgentGBM>();
+        foreach (var wrapper in activeAgents.Values)
+        {
+            if (wrapper != null && wrapper.gameObject != null)
+            {
+                var comp = wrapper.gameObject.GetComponent<AgentGBM>();
+                if (comp != null) list.Add(comp);
+            }
+        }
+        return list;
+    }
     private Dictionary<int, float> agentSpawnTimes = new Dictionary<int, float>();
     private HashSet<int> spawnedAgentIDs = new HashSet<int>();
     private Collider[] obstacleColliders;
@@ -161,7 +176,7 @@ public class GBMMetricsEvaluator : MonoBehaviour
     void SpawnGBMAgent(int id, Transform gtTransform)
     {
         Vector3 startPos = gtTransform.position;
-        Quaternion startRot = gtTransform.rotation;
+        Quaternion startRot = gtTransform.rotation * Quaternion.Euler(0, -90, 0);
 
         GameObject agentObj = Instantiate(agentPrefab, startPos, startRot);
         agentObj.name = $"GBM_Agent_{id}";
@@ -265,6 +280,8 @@ public class GBMMetricsEvaluator : MonoBehaviour
 
     void RecordMetrics(List<IGBMAgent> agents)
     {
+        if (!enableMetrics) return;
+
         int count = agents.Count;
         if (count == 0) return;
 

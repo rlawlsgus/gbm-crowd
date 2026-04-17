@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -10,6 +11,10 @@ using UnityEditor;
 
 public class ZaraGroupRotationSimulator : MonoBehaviour
 {
+    [Header("Agent Filter")]
+    public int startIdx = 0;
+    public int finalIdx = 10000;
+
     [Header("Input (TextAsset)")]
     public TextAsset trajectoriesTxt;   // Zara: id,x,y,frame,angle  OR  ETH: obsmat.txt
     public TextAsset groupsTxt;         // groups.txt
@@ -31,6 +36,7 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
     public float playbackSpeed = 1f;
     public bool loop = true;
     public bool playOnStart = true;
+    public bool stopOnEnd = true;
 
     [Header("World Mapping")]
     public bool useHomography = true;     // H.txt 적용 (Zara pixel->world 등)
@@ -393,10 +399,37 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
 
         ParseTrajectories(trajectoriesTxt.text);
 
+        // Calculate centroid BEFORE filtering to keep coordinates stable
+        ComputeDataCentroidWorld();
+
+        // --- Filter by ID Range (Efficiently remove unused data) ---
+        var idsToRemove = trajById.Keys.Where(id => id < startIdx || id > finalIdx).ToList();
+        foreach (var id in idsToRemove)
+        {
+            trajById.Remove(id);
+        }
+
+        // --- Recalculate Global Frames based on remaining agents ---
+        if (trajById.Count > 0)
+        {
+            globalMinFrame = int.MaxValue;
+            globalMaxFrame = int.MinValue;
+            foreach (var kv in trajById)
+            {
+                var t = kv.Value;
+                if (t.frames == null || t.frames.Length == 0) continue;
+                if (t.MinFrame < globalMinFrame) globalMinFrame = t.MinFrame;
+                if (t.MaxFrame > globalMaxFrame) globalMaxFrame = t.MaxFrame;
+            }
+        }
+        else
+        {
+            globalMinFrame = 0;
+            globalMaxFrame = 0;
+        }
+
         if (groupsTxt != null) ParseGroups(groupsTxt.text);
         BuildGroupEdges();
-
-        ComputeDataCentroidWorld();
     }
 
     TrajectoryInputFormat DetectFormat(string text)
@@ -1135,11 +1168,14 @@ public class ZaraGroupRotationSimulator : MonoBehaviour
     {
         isPlaying = false;
 
+        if (stopOnEnd)
+        {
 #if UNITY_EDITOR
-        // "Stop" 버튼 누른 것처럼 Play 모드 종료
-        if (EditorApplication.isPlaying)
-            EditorApplication.isPlaying = false;
+            // "Stop" 버튼 누른 것처럼 Play 모드 종료
+            if (EditorApplication.isPlaying)
+                EditorApplication.isPlaying = false;
 #endif
+        }
     }
 
     // ---------- Export (WORLD coordinates) ----------

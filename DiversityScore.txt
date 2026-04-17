@@ -1,1 +1,0 @@
-Final Average Diversity Score (over 1 agents, 10 trials each): 3.1151
