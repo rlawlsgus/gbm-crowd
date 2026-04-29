@@ -10,6 +10,10 @@ public class AgentBase : MonoBehaviour
 	public Renderer Renderer;
 	public bool pdmMode = false;
 
+    [Header("Evaluation Data")]
+    public int agentIndex;
+    public System.Collections.Generic.List<Transform> groupMembers = new System.Collections.Generic.List<Transform>();
+
 	float OrientedAngle(Vector2 v1, Vector2 v2) 
 	{
 		float dot = v1.x * v2.x + v1.y * v2.y;

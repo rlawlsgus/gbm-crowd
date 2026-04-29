@@ -23,7 +23,7 @@ public class CarController : MonoBehaviour
     [Header("Detection")]
     public float detectionDistance = 15f;
     public float stopDistance = 8f;
-    public LayerMask obstacleLayer;
+    public string obstacleTag = "Vehicle";
     public Vector3 rayOffset = new Vector3(0, 1, 2);
 
     [Header("Current State")]
@@ -95,7 +95,7 @@ public class CarController : MonoBehaviour
         Vector3 rayStart = transform.position + transform.TransformDirection(rayOffset);
         Vector3 rayDir = transform.forward;
 
-        RaycastHit[] hits = Physics.RaycastAll(rayStart, rayDir, detectionDistance, obstacleLayer);
+        RaycastHit[] hits = Physics.RaycastAll(rayStart, rayDir, detectionDistance);
         
         float closestDistance = float.MaxValue;
         bool foundValidObstacle = false;
@@ -104,10 +104,13 @@ public class CarController : MonoBehaviour
         {
             if (h.transform == transform || h.transform.IsChildOf(transform)) continue;
 
-            if (h.distance < closestDistance)
+            if (h.collider.CompareTag(obstacleTag))
             {
-                closestDistance = h.distance;
-                foundValidObstacle = true;
+                if (h.distance < closestDistance)
+                {
+                    closestDistance = h.distance;
+                    foundValidObstacle = true;
+                }
             }
         }
 
