@@ -1,0 +1,18 @@
+{
+    "sceneName": "Students003",
+    "date": "2026-05-01",
+    "time": "10-56-26",
+    "totalAgents": 50,
+    "successCount": 50,
+    "goalSuccessRate": 1.0,
+    "averageSafeRate": 0.848220705986023,
+    "avgDangerZoneViolationRate": 0.0,
+    "avgStaticObstacleCollisionRate": 0.0027476975228637459,
+    "avgVehicleCollisionRate": 0.0,
+    "avgDoorCollisionRate": 0.0,
+    "avgAgentCollisionRate": 0.14903156459331513,
+    "avgTravelTime": 12.597701072692871,
+    "stdDevTravelTime": 6.8873820304870609,
+    "totalGroupsDetected": 13,
+    "avgInterGroupDistance": 2.1923446655273439
+}

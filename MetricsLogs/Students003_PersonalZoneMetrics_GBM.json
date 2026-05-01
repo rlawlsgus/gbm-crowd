@@ -1,0 +1,27 @@
+{
+    "sceneName": "Students003",
+    "date": "2026-05-01",
+    "time": "10-56-26",
+    "totalSamples": 15805,
+    "personalZoneRadius": 1.0,
+    "averageViolatorsPerAgent": 0.08807339519262314,
+    "violationRate": 0.3582202196121216,
+    "histogramEntries": [
+        {
+            "violatorCount": 0,
+            "frameCount": 14515
+        },
+        {
+            "violatorCount": 1,
+            "frameCount": 1196
+        },
+        {
+            "violatorCount": 2,
+            "frameCount": 86
+        },
+        {
+            "violatorCount": 3,
+            "frameCount": 8
+        }
+    ]
+}
