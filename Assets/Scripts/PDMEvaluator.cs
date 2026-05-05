@@ -296,20 +296,30 @@ public class PDMEvaluator : MonoBehaviour
 
     void OnApplicationQuit()
     {
-        if (adeList.Count > 0)
-        {
-            Debug.Log($"[PDM Report] ADE (Average Displacement Error): {adeList.Average():F4} meters (over {adeList.Count} intervals)");
-        }
-        
-        if (fdeList.Count > 0)
-        {
-            Debug.Log($"[PDM Report] FDE (Final Displacement Error): {fdeList.Average():F4} meters (over {fdeList.Count} intervals)");
-        }
+        LogMetric("ADE (Average Displacement Error)", adeList);
+        LogMetric("FDE (Final Displacement Error)", fdeList);
 
         if (generateMap)
         {
             GenerateMap();
         }
+    }
+
+    void LogMetric(string name, List<float> values)
+    {
+        if (values.Count == 0) return;
+
+        float mean = values.Average();
+        float ci = 0f;
+
+        if (values.Count > 1)
+        {
+            float sumOfSquares = values.Sum(v => (v - mean) * (v - mean));
+            float sd = Mathf.Sqrt(sumOfSquares / (values.Count - 1));
+            ci = 1.96f * (sd / Mathf.Sqrt(values.Count));
+        }
+
+        Debug.Log($"[PDM Report] {name}: {mean:F4} ± {ci:F4} meters (95% CI, over {values.Count} intervals)");
     }
 
     void GenerateMap()

@@ -1,0 +1,18 @@
+{
+    "sceneName": "Zara01_Recon_Dataset",
+    "date": "2026-05-04",
+    "time": "22-26-30",
+    "totalAgents": 9,
+    "successCount": 7,
+    "goalSuccessRate": 0.7777777910232544,
+    "averageSafeRate": 0.9152280688285828,
+    "avgDangerZoneViolationRate": 0.08477194607257843,
+    "avgStaticObstacleCollisionRate": 0.0,
+    "avgVehicleCollisionRate": 0.0,
+    "avgDoorCollisionRate": 0.0,
+    "avgAgentCollisionRate": 0.0,
+    "avgTravelTime": 22.599973678588868,
+    "stdDevTravelTime": 3.8573553562164308,
+    "totalGroupsDetected": 1,
+    "avgInterGroupDistance": 1.1997100114822388
+}

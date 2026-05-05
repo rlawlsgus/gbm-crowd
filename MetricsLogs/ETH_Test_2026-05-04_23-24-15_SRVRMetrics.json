@@ -1,0 +1,18 @@
+{
+    "sceneName": "ETH_Test",
+    "date": "2026-05-04",
+    "time": "23-24-15",
+    "totalAgents": 9,
+    "successCount": 8,
+    "goalSuccessRate": 0.8888888955116272,
+    "averageSafeRate": 1.0,
+    "avgDangerZoneViolationRate": 0.0,
+    "avgStaticObstacleCollisionRate": 0.0,
+    "avgVehicleCollisionRate": 0.0,
+    "avgDoorCollisionRate": 0.0,
+    "avgAgentCollisionRate": 0.0,
+    "avgTravelTime": 20.941097259521486,
+    "stdDevTravelTime": 2.758948802947998,
+    "totalGroupsDetected": 3,
+    "avgInterGroupDistance": 1.8234846591949463
+}

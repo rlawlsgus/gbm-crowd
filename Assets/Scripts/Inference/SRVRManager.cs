@@ -46,6 +46,10 @@ public class SRVRManager : MonoBehaviour
     public bool logHitTags = false;
     private bool _hasExported = false;
 
+    [Header("Agent Stop Settings")]
+    [Tooltip("If true, the agent will stop recording and be deactivated immediately upon the first collision (excluding Danger Zones).")]
+    public bool stopOnFirstCollision = false;
+
     [Header("Trajectory Map Settings")]
     public bool enableTrajectoryMap = true;
     [Tooltip("If true, only draws the last N seconds of the trajectory.")]
@@ -217,22 +221,49 @@ public class SRVRManager : MonoBehaviour
             if (hitDanger) data.dangerZoneTime += dt;
 
             // 2. Collision Check (Nearby Objects)
+            bool collisionDetected = false;
             Collider[] nearby = Physics.OverlapSphere(agentColPos, agentRadius + 0.2f);
             foreach (var col in nearby)
             {
                 if (col == null || col == data.agentCollider || col.transform.IsChildOf(agentTransform)) continue;
+                if (dangerZoneColliders.Contains(col)) continue; // Danger zones don't count as collision for stop-logic
 
                 if (IsOverlapping(data.agentCollider, col))
                 {
                     string tag = col.tag;
-                    if (logHitTags) Debug.Log($"Agent {data.agentComponent.agentIndex} hitting: {tag} on {col.name}");
+                    bool isAgent = tag == agentTag;
+                    bool isVehicle = tag == vehicleTag;
+                    bool isDoor = tag == doorTag;
+                    bool isObstacle = tag == obstacleTag || tag == buildingTag || obstacleColliders.Contains(col);
 
-                    if (tag == agentTag) data.agentCollisionTime += dt;
-                    else if (tag == vehicleTag) data.vehicleCollisionTime += dt;
-                    else if (tag == doorTag) data.doorCollisionTime += dt;
-                    else if (tag == obstacleTag || tag == buildingTag || obstacleColliders.Contains(col))
-                        data.staticObstacleTime += dt;
+                    if (isAgent || isVehicle || isDoor || isObstacle)
+                    {
+                        if (logHitTags) Debug.Log($"Agent {data.agentComponent.agentIndex} hitting: {tag} on {col.name}");
+
+                        if (isAgent) data.agentCollisionTime += dt;
+                        else if (isVehicle) data.vehicleCollisionTime += dt;
+                        else if (isDoor) data.doorCollisionTime += dt;
+                        else if (isObstacle) data.staticObstacleTime += dt;
+
+                        collisionDetected = true;
+                    }
                 }
+            }
+
+            if (stopOnFirstCollision && collisionDetected)
+            {
+                if (verbose) Debug.Log($"[SRVR] Agent {data.agentComponent.agentIndex} failed due to collision. Stopping tracking and deactivating.");
+                data.isFinished = true;
+                data.hasReachedGoal = false;
+
+                // Record final position if trajectory mapping is enabled before deactivating
+                if (enableTrajectoryMap)
+                {
+                    data.trajectory.Add(new TrajectoryPoint(agentTransform.position, hitDanger, Time.time));
+                }
+
+                agentTransform.gameObject.SetActive(false);
+                continue;
             }
 
             // Group Stats

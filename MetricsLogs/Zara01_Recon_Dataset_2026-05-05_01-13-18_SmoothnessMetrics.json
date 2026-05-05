@@ -1,0 +1,55 @@
+{
+    "sceneName": "Zara01_Recon_Dataset",
+    "date": "2026-05-05",
+    "time": "01-13-18",
+    "totalAgents": 9,
+    "meanRMSJerk": 299.2445983886719,
+    "stdDevRMSJerk": 40.199951171875,
+    "agents": [
+        {
+            "agentName": "Agent_8_8_Sim",
+            "rmsJerk": 236.57371520996095,
+            "totalSamples": 850
+        },
+        {
+            "agentName": "Agent_7_7_Sim",
+            "rmsJerk": 275.2200012207031,
+            "totalSamples": 968
+        },
+        {
+            "agentName": "Agent_6_6_Sim",
+            "rmsJerk": 322.6676940917969,
+            "totalSamples": 1023
+        },
+        {
+            "agentName": "Agent_5_5_Sim",
+            "rmsJerk": 255.3984832763672,
+            "totalSamples": 875
+        },
+        {
+            "agentName": "Agent_4_4_Sim",
+            "rmsJerk": 275.9928283691406,
+            "totalSamples": 872
+        },
+        {
+            "agentName": "Agent_3_3_Sim",
+            "rmsJerk": 372.3152770996094,
+            "totalSamples": 935
+        },
+        {
+            "agentName": "Agent_2_2_Sim",
+            "rmsJerk": 298.5719299316406,
+            "totalSamples": 916
+        },
+        {
+            "agentName": "Agent_1_1_Sim",
+            "rmsJerk": 326.2861633300781,
+            "totalSamples": 983
+        },
+        {
+            "agentName": "Agent_0_0_Sim",
+            "rmsJerk": 330.1753845214844,
+            "totalSamples": 916
+        }
+    ]
+}

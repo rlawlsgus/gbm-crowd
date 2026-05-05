@@ -1,0 +1,10 @@
+{
+    "sceneName": "Students003",
+    "date": "2026-05-05",
+    "time": "16-50-45",
+    "totalSegments": 9004,
+    "meanADE": 0.250348299741745,
+    "stdDevADE": 0.14735454320907594,
+    "meanFDE": 0.46164628863334658,
+    "stdDevFDE": 0.28413987159729006
+}

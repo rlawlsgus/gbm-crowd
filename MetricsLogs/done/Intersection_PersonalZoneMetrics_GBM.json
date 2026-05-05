@@ -1,0 +1,15 @@
+{
+    "sceneName": "ETH_Test",
+    "date": "2026-05-03",
+    "time": "17-08-49",
+    "totalSamples": 4925,
+    "personalZoneRadius": 1.0,
+    "averageViolatorsPerAgent": 0.0,
+    "violationRate": 0.0,
+    "histogramEntries": [
+        {
+            "violatorCount": 0,
+            "frameCount": 4925
+        }
+    ]
+}
