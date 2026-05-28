@@ -12,6 +12,8 @@ public class TestManager : MonoBehaviour
     public ScenarioType scenario = ScenarioType.Intersection;
     public AgentCount agentCount = AgentCount.Count_9;
     public GameObject agentPrefab;
+    public Transform agentsRoot;
+    public Transform goalsRoot;
     public float gridSpacing = 2.0f; // Spacing between agents
 
     [Header("Density Scenario Settings")]
@@ -28,6 +30,18 @@ public class TestManager : MonoBehaviour
         {
             Debug.LogError("Agent Prefab is missing in TestManager!");
             return;
+        }
+
+        // Auto-find roots if not assigned
+        if (agentsRoot == null)
+        {
+            GameObject foundAgents = GameObject.Find("Agents");
+            if (foundAgents != null) agentsRoot = foundAgents.transform;
+        }
+        if (goalsRoot == null)
+        {
+            GameObject foundGoals = GameObject.Find("Goals");
+            if (foundGoals != null) goalsRoot = foundGoals.transform;
         }
 
         SpawnScenario();
@@ -137,11 +151,12 @@ public class TestManager : MonoBehaviour
             // Apply -90 degree offset to match GBM coordinate system
             initialRot *= Quaternion.Euler(0, -90f, 0);
 
-            GameObject agent = Instantiate(agentPrefab, spawnPos, initialRot);
+            GameObject agent = Instantiate(agentPrefab, spawnPos, initialRot, agentsRoot);
             agent.name = $"{agentPrefab.name}_{activeAgents.Count}";
 
             // 4. Setup Goal
             GameObject goalObj = new GameObject($"{agent.name}_Goal");
+            if (goalsRoot != null) goalObj.transform.SetParent(goalsRoot);
             goalObj.transform.position = goalPos;
             activeGoals.Add(goalObj.transform);
 
@@ -191,7 +206,7 @@ public class TestManager : MonoBehaviour
                 // Apply -90 degree offset to match GBM coordinate system
                 Quaternion adjustedRotation = initialRotation * Quaternion.Euler(0, -90f, 0);
 
-                GameObject agent = Instantiate(agentPrefab, spawnPos, adjustedRotation);
+                GameObject agent = Instantiate(agentPrefab, spawnPos, adjustedRotation, agentsRoot);
                 agent.name = $"{agentPrefab.name}_{activeAgents.Count}";
 
                 // Create Goal object (Assign individual goal for each agent)
@@ -200,6 +215,7 @@ public class TestManager : MonoBehaviour
                 finalGoalPos.y = 0.05f;
 
                 GameObject goalObj = new GameObject($"{agent.name}_Goal");
+                if (goalsRoot != null) goalObj.transform.SetParent(goalsRoot);
                 goalObj.transform.position = finalGoalPos;
                 activeGoals.Add(goalObj.transform);
 

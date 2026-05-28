@@ -1,0 +1,426 @@
+=== Spawn Scenario Record ===
+{
+    "totalAgents": 20,
+    "spawns": [
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 0,
+                    "agentName": "Agent_F04_Anchor_Smooth (1)",
+                    "position": [
+                        -8.579999923706055,
+                        -0.5,
+                        3.7699999809265138
+                    ],
+                    "goalPosition": [
+                        -21.540000915527345,
+                        0.33000004291534426,
+                        -12.859999656677246
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 1,
+                    "agentName": "Agent_F04_Anchor_Smooth (3)",
+                    "position": [
+                        -8.579999923706055,
+                        -0.5,
+                        2.2400002479553224
+                    ],
+                    "goalPosition": [
+                        -21.540000915527345,
+                        0.33000004291534426,
+                        -12.859999656677246
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 2,
+                    "agentName": "Agent_F04_Anchor_Smooth (5)",
+                    "position": [
+                        -6.630000114440918,
+                        -0.5,
+                        3.669999599456787
+                    ],
+                    "goalPosition": [
+                        -7.840000152587891,
+                        0.33000001311302187,
+                        -18.290000915527345
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 3,
+                    "agentName": "Agent_F04_Anchor_Smooth (2)",
+                    "position": [
+                        -6.770000457763672,
+                        -0.5,
+                        2.2400002479553224
+                    ],
+                    "goalPosition": [
+                        -7.840000152587891,
+                        0.33000001311302187,
+                        -18.290000915527345
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 4,
+                    "agentName": "Agent_F04_Anchor_Smooth (4)",
+                    "position": [
+                        -20.389999389648439,
+                        -0.5,
+                        1.799999713897705
+                    ],
+                    "goalPosition": [
+                        -8.199999809265137,
+                        0.33000004291534426,
+                        9.25
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 5,
+                    "agentName": "Agent_F04_Anchor_Smooth (7)",
+                    "position": [
+                        -20.25,
+                        -0.5,
+                        3.22999906539917
+                    ],
+                    "goalPosition": [
+                        -8.199999809265137,
+                        0.33000004291534426,
+                        9.25
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 6,
+                    "agentName": "Agent_F04_Anchor_Smooth (6)",
+                    "position": [
+                        -22.200000762939454,
+                        -0.5,
+                        1.799999713897705
+                    ],
+                    "goalPosition": [
+                        8.180000305175782,
+                        0.33000004291534426,
+                        2.6600000858306886
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 7,
+                    "agentName": "Agent_F04_Anchor_Smooth (8)",
+                    "position": [
+                        -22.200000762939454,
+                        -0.5,
+                        3.32999849319458
+                    ],
+                    "goalPosition": [
+                        8.180000305175782,
+                        0.33000004291534426,
+                        2.6600000858306886
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 8,
+                    "agentName": "Agent_F04_Anchor_Smooth (9)",
+                    "position": [
+                        -23.69999885559082,
+                        -0.5,
+                        -12.059999465942383
+                    ],
+                    "goalPosition": [
+                        8.180000305175782,
+                        0.33000004291534426,
+                        -12.4399995803833
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 9,
+                    "agentName": "Agent_F04_Anchor_Smooth (10)",
+                    "position": [
+                        -23.69999885559082,
+                        -0.5,
+                        -13.59000015258789
+                    ],
+                    "goalPosition": [
+                        8.180000305175782,
+                        0.33000004291534426,
+                        -12.4399995803833
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 10,
+                    "agentName": "Agent_F04_Anchor_Smooth (11)",
+                    "position": [
+                        -21.75,
+                        -0.5,
+                        -12.15999984741211
+                    ],
+                    "goalPosition": [
+                        8.180000305175782,
+                        0.33000004291534426,
+                        -12.4399995803833
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 11,
+                    "agentName": "Agent_F04_Anchor_Smooth (12)",
+                    "position": [
+                        -21.889999389648439,
+                        -0.5,
+                        -13.59000015258789
+                    ],
+                    "goalPosition": [
+                        8.180000305175782,
+                        0.33000004291534426,
+                        -12.4399995803833
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 12,
+                    "agentName": "Agent_F04_Anchor_Smooth (13)",
+                    "position": [
+                        8.319997787475586,
+                        -0.5,
+                        -12.059999465942383
+                    ],
+                    "goalPosition": [
+                        -7.920000076293945,
+                        0.33000004291534426,
+                        2.819999933242798
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 13,
+                    "agentName": "Agent_F04_Anchor_Smooth (14)",
+                    "position": [
+                        8.319999694824219,
+                        -0.5,
+                        -13.59000015258789
+                    ],
+                    "goalPosition": [
+                        8.180000305175782,
+                        0.33000004291534426,
+                        2.6600000858306886
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 14,
+                    "agentName": "Agent_F04_Anchor_Smooth (15)",
+                    "position": [
+                        10.269996643066407,
+                        -0.5,
+                        -12.15999984741211
+                    ],
+                    "goalPosition": [
+                        -7.920000076293945,
+                        0.33000004291534426,
+                        2.819999933242798
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 15,
+                    "agentName": "Agent_F04_Anchor_Smooth (16)",
+                    "position": [
+                        10.129997253417969,
+                        -0.5,
+                        -13.59000015258789
+                    ],
+                    "goalPosition": [
+                        8.180000305175782,
+                        0.33000004291534426,
+                        2.6600000858306886
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 16,
+                    "agentName": "Agent_F04_Anchor_Smooth (17)",
+                    "position": [
+                        6.909999370574951,
+                        -0.5,
+                        3.8399996757507326
+                    ],
+                    "goalPosition": [
+                        -8.180000305175782,
+                        0.33000004291534426,
+                        -12.4399995803833
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 17,
+                    "agentName": "Agent_F04_Anchor_Smooth (18)",
+                    "position": [
+                        6.910001277923584,
+                        -0.5,
+                        2.309999942779541
+                    ],
+                    "goalPosition": [
+                        -8.180000305175782,
+                        0.33000004291534426,
+                        -12.4399995803833
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 18,
+                    "agentName": "Agent_F04_Anchor_Smooth (19)",
+                    "position": [
+                        8.85999870300293,
+                        -0.5,
+                        3.739999294281006
+                    ],
+                    "goalPosition": [
+                        -8.180000305175782,
+                        0.33000004291534426,
+                        -12.4399995803833
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        },
+        {
+            "sidewalkIndex": -1,
+            "type": "Single",
+            "agents": [
+                {
+                    "spawnId": 19,
+                    "agentName": "Agent_F04_Anchor_Smooth (20)",
+                    "position": [
+                        8.719999313354493,
+                        -0.5,
+                        2.309999942779541
+                    ],
+                    "goalPosition": [
+                        -8.180000305175782,
+                        0.33000004291534426,
+                        -12.4399995803833
+                    ],
+                    "groupSize": 1
+                }
+            ]
+        }
+    ]
+}
